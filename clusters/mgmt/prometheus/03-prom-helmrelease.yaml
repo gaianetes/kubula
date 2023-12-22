@@ -8,10 +8,10 @@ spec:
   targetNamespace: monitoring
   chart:
     spec:
-      chart: prometheus-community
+      chart: kube-prometheus-stack
       sourceRef:
         kind: HelmRepository
-        name: kube-prometheus-stack
+        name: prometheus-community
         namespace: flux-system
       interval: 1m
       version: 55.5.0
