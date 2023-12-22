@@ -20,7 +20,7 @@ spec:
       params:
         server.insecure: true
       rbac:
-        defaultPolicy: 'role:admin'
+        defaultPolicy: 'role:readonly'
         policy: |
           g, argocd-admin, role:admin
           g, argocd-manager, role:admin
