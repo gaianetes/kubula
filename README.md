@@ -1,5 +1,7 @@
 # Kubula - Flux Bootstrapper for Kubernetes
 
+![Kubula](media/logo-scaled.png)
+
 ## What is Kubula?
 
 Kubula is a tool that helps you bootstrap your Kubernetes cluster using [Flux](https://fluxcd.io/). It is a wrapper around Flux that helps you get started with Flux and Kubernetes.
