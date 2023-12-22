@@ -1,0 +1,54 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: argocd
+  namespace: argocd
+spec:
+    interval: 1m
+    # install in argocd namespace
+    targetNamespace: argocd
+    chart:
+      spec:
+        chart: argocd
+        sourceRef:
+            kind: HelmRepository
+            name: argocd
+            namespace: flux-system
+        interval: 1m
+        targetRevision: HEAD
+    values:
+      params:
+        server.insecure: true
+      rbac:
+        defaultPolicy: 'role:admin'
+        policy: |
+            g, argocd-admin, role:admin
+            g, argocd-manager, role:admin
+            g, argocd-server, role:admin
+            g, argocd-server, role:readonly
+            g, argocd-server, role:repo-server
+            g, argocd-server, role:server
+            g, argocd-server, role:users
+            g, argocd-server, role:viewer
+            g, argocd-server, role:writer
+            g, argocd-server, scope:*, apiGroups:*
+            g, system:authenticated, role:admin
+            g, system:authenticated, role:readonly
+            g, system:authenticated, role:repo-server
+            g, system:authenticated, role:server
+            g, system:authenticated, role:users
+            g, system:authenticated, role:viewer
+            g, system:authenticated, role:writer
+            g, system:authenticated, scope:*, apiGroups:*
+            g, system:serviceaccounts, role:admin
+            g, system:serviceaccounts, role:readonly
+            g, system:serviceaccounts, role:repo-server
+            g, system:serviceaccounts, role:server
+            g, system:serviceaccounts, role:users
+            g, system:serviceaccounts, role:viewer
+            g, system:serviceaccounts, role:writer
+            g, system:serviceaccounts, scope:*, apiGroups:*
+            g, system:unauthenticated, role:admin
+            g, system:unauthenticated, role:readonly
+            g, system:unauthenticated, role:repo-server
+            g, system:unauthenticated, role:server
