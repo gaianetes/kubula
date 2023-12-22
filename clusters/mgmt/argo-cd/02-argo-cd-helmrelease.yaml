@@ -11,7 +11,7 @@ spec:
       chart: argo-cd
       sourceRef:
         kind: HelmRepository
-        name: argocd
+        name: argo-cd
         namespace: flux-system
       interval: 1m
       version: 5.51.0
