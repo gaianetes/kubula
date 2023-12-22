@@ -85,7 +85,13 @@ argocd          argocd  5.51.0          False           True    Helm install suc
 
 ### Install Prometheus
 
-_todo_
+Similar to Argo CD, we can use a `HelmRelease` to install the Prometheus Kube Stack. The `HelmRelease` is defined in `clusters/$CLUSTER_NAME/prometheus/03-prom-helmrelease.yaml`. You can change the values in `clusters/$CLUSTER_NAME/prometheus/03-prome-helmrelease.yaml` to customize the installation. Once you are done, commit the changes and push them to the repository. Flux will apply the changes to your cluster.
+
+```bash
+$ git add .
+$ git commit -m "Install Prometheus"
+$ git push origin main
+```
 
 ## References
 
