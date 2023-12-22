@@ -59,6 +59,12 @@ notification-controller-7f9f9f6f8f-2q9qz   1/1     Running   0          2m
 source-controller-7f9f9f6f8f-2q9qz         1/1     Running   0          2m
 ```
 
+6. Install Flamingo
+
+```bash
+flamingo install
+```
+
 ### Install Argo CD
 
 We can now use Flux to install Argo CD. We will use a HelmRelease to install Argo CD. The HelmRelease is defined in `clusters/$CLUSTER_NAME/argo-cd/argocd-helmrelease.yaml`. You can change the values in `clusters/$CLUSTER_NAME/argo-cd/02-argo-cd-helmrelease.yaml` to customize the installation. Once you are done, commit the changes and push them to the repository. Flux will apply the changes to your cluster.
