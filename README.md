@@ -13,9 +13,10 @@ Kubula is a tool that helps you bootstrap your Kubernetes cluster using [Flux](h
 
 ## Prerequisites
 
-- A Kubernetes cluster
-- kubectl
-- flux CLI
+- A Kubernetes [cluster](https://mitchmurphy.io/cilium-rke2/)
+- [kubectl](https://kubernetes.io/docs/tasks/tools/)
+- [flux CLI](https://fluxcd.io/flux/installation/)
+- [flamingo CLI](https://flux-subsystem-argo.github.io/website/)
 
 ## Bootstrap
 
