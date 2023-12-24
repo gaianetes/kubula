@@ -3,8 +3,8 @@
 from PIL import Image
 
 # read image
-image = Image.open("media/logo.png")
+image = Image.open("../media/kubula.png")
 # resize
 new_image = image.resize((600, 600))
 # save image
-new_image.save("logo-scaled.png")
+new_image.save("kubula-scaled.png")
