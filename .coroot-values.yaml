@@ -1,0 +1,16 @@
+values:
+  prometheus:
+    enabled: false
+  persistence:
+    enabled: false
+  existingPrometheus:
+    enabled: true
+    service:
+      serviceName: prometheus-stack-kube-prom-prometheus
+      servicePort: 9090
+      serviceNamespace: monitoring
+    node-agent-podmonitor:
+      enabled: true
+  pyroscope:
+    persistence:
+      enabled: false
