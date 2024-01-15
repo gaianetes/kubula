@@ -141,7 +141,7 @@ install_kustomize() {
 
 # function to bootstrap a cluster using flux
 # Usage: bootstrap <cluster_name>
-flux_bootstrap() {
+bootstrap() {
   # ensure all arguments are passed
   if [ $# -ne 1 ]; then
     echo "Usage: bootstrap <cluster_name>"
@@ -188,6 +188,30 @@ add_repo() {
   argocd repo add $1 --username $2 --password $3 --insecure-skip-server-verification
 }
 
+# function to install ApplicationSets to argocd
+# Usage: install_appset <application_set> <cluster_name>
+install_appset() {
+  # ensure all arguments are passed
+  if [ $# -ne 2 ]; then
+    echo "Usage: install_appset <application_set> <cluster_name>"
+    exit 1
+  fi
+  # check that <cluster_name> is a valid cluster
+  $clusters=$(kubectl config get-contexts -o name)
+  if [[ ! $clusters =~ $2 ]]; then
+    echo "Cluster $2 does not exist"
+    exit 1
+  fi
+
+  # install ApplicationSet to argocd
+  echo "${GREEN}Installing $1 ApplicationSet to cluster $2 ${NC}"
+  argocd app create $1 --repo $GITHUB_USER/$GITHUB_REPO \
+    --path "argocd/applicationsets/$1.yaml" \
+    --dest-name $2 \
+    --dest-namespace argocd --sync-policy automated \
+    --auto-prune --self-heal --directory-recurse --upsert
+}
+
 # echo "Welcome to Kubula!" 1>&2
 setup "https://github.com/gaianetes/kubula.git" $GITHUB_USER $GAIANETES_PAT
 print_logo
@@ -197,4 +221,4 @@ preflight_check
 echo
 echo "${YELLOW}Bootstrapping mgmt cluster with flux${NC}" 1>&2
 echo
-flux_bootstrap "mgmt"
+bootstrap "mgmt"
