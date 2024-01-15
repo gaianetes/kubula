@@ -31,31 +31,31 @@ preflight_check() {
 
   # check if flux is installed
   if ! [ -x "$(command -v flux)" ]; then
-      echo "${RED}flux is not installed. Please install flux first.${NC}" 1>&2
+      echo "${RED}flux is not installed.${NC} ${WHITE}Please install flux first.${NC}" 1>&2
       passed=false
   fi
 
   # check that argocd is installed
   if ! [ -x "$(command -v argocd)" ]; then
-      echo "${RED}argocd is not installed. Please install argocd first.{NC}" 1>&2
+      echo "${RED}argocd is not installed.${NC} ${WHITE}Please install argocd first.{NC}" 1>&2
       passed=false
   fi
 
   # check that kubectl is installed
   if ! [ -x "$(command -v kubectl)" ]; then
-      echo "${RED}kubectl is not installed. Please install kubectl first.${NC}" 1>&2
+      echo "${RED}kubectl is not installed.${NC} ${WHITE}Please install kubectl first.${NC}" 1>&2
       passed=false
   fi
 
   # check that kustomize is installed
   if ! [ -x "$(command -v kustomize)" ]; then
-      echo "${RED}kustomize is not installed. Please install kustomize first.${NC}" 1>&2
+      echo "${RED}kustomize is not installed.${NC} ${WHITE} Please install kustomize first.${NC}" 1>&2
       passed=false
   fi
 
   # check that helm is installed
   if ! [ -x "$(command -v helm)" ]; then
-      echo "${RED}helm is not installed. Please install helm first.${NC}" 1>&2
+      echo "${RED}helm is not installed.${NC} ${WHITE} Please install helm first.${NC}" 1>&2
       passed=false
   fi
 
@@ -72,9 +72,13 @@ preflight_check() {
 # setup function to initialize variables
 # Usage: setup
 setup() {
-  export GREEN='\e[1;32m'
-  export RED='\e[0;31m'
-  export YELLOW='\e[1;33m'
+  export GREEN=$(tput setaf 2)
+  export RED=$(tput setaf 1)
+  export YELLOW=$(tput setaf 3)
+  export BLUE=$(tput setaf 4)
+  export PINK=$(tput setaf 5)
+  export CYAN=$(tput setaf 6)
+  export WHITE=$(tput setaf 7)
   export NC='\e[0m'
   local arch=$(uname -m)
   case $arch in
