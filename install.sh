@@ -1,56 +1,81 @@
 #!/bin/sh
 
+# function to print logo with proper color
+# Usage: print_logo
+print_logo() {
+  echo "${GREEN}"
+  echo "                                                                                     "
+  echo "      ___           ___                         ___                         ___      "
+  echo "     /__/|         /__/\         _____         /__/\                       /  /\     "
+  echo "    |  |:|         \  \:\       /  /::\        \  \:\                     /  /::\    "
+  echo "    |  |:|          \  \:\     /  /:/\:\        \  \:\    ___     ___    /  /:/\:\   "
+  echo "  __|  |:|      ___  \  \:\   /  /:/~/::\   ___  \  \:\  /__/\   /  /\  /  /:/~/::\  "
+  echo " /__/\_|:|____ /__/\  \__\:\ /__/:/ /:/\:| /__/\  \__\:\ \  \:\ /  /:/ /__/:/ /:/\:\ "
+  echo " \  \:\/:::::/ \  \:\ /  /:/ \  \:\/:/~/:/ \  \:\ /  /:/  \  \:\  /:/  \  \:\/:/__\/ "
+  echo "  \  \::/~~~~   \  \:\  /:/   \  \::/ /:/   \  \:\  /:/    \  \:\/:/    \  \::/      "
+  echo "   \  \:\        \  \:\/:/     \  \:\/:/     \  \:\/:/      \  \::/      \  \:\      "
+  echo "    \  \:\        \  \::/       \  \::/       \  \::/        \__\/        \  \:\     "
+  echo "     \__\/         \__\/         \__\/         \__\/                       \__\/     "
+  echo "                                                                                     "
+  echo "${NC}"
+}
+
 # preflight check function
 preflight_check() {
   local passed=true
   # check if the script is running as root
   if [ "$(id -u)" != "0" ]; then
-      echo "This script must be run as root" 1>&2
+      echo "${RED}This script must be run as root${NC}" 1>&2
       passed=false
   fi
 
   # check if flux is installed
   if ! [ -x "$(command -v flux)" ]; then
-      echo "flux is not installed. Please install flux first." 1>&2
+      echo "${RED}flux is not installed. Please install flux first.${NC}" 1>&2
       passed=false
   fi
 
   # check that argocd is installed
   if ! [ -x "$(command -v argocd)" ]; then
-      echo "argocd is not installed. Please install argocd first." 1>&2
+      echo "${RED}argocd is not installed. Please install argocd first.{NC}" 1>&2
       passed=false
   fi
 
   # check that kubectl is installed
   if ! [ -x "$(command -v kubectl)" ]; then
-      echo "kubectl is not installed. Please install kubectl first." 1>&2
+      echo "${RED}kubectl is not installed. Please install kubectl first.${NC}" 1>&2
       passed=false
   fi
 
   # check that kustomize is installed
   if ! [ -x "$(command -v kustomize)" ]; then
-      echo "kustomize is not installed. Please install kustomize first." 1>&2
+      echo "${RED}kustomize is not installed. Please install kustomize first.${NC}" 1>&2
       passed=false
   fi
 
   # check that helm is installed
   if ! [ -x "$(command -v helm)" ]; then
-      echo "helm is not installed. Please install helm first." 1>&2
+      echo "${RED}helm is not installed. Please install helm first.${NC}" 1>&2
       passed=false
   fi
 
+  echo
   # check passed variable
   if [ "$passed" = false ]; then
-    echo "preflight check failed"
+    echo "${RED}preflight check failed${NC}" 1>&2
     exit 1
   fi
 
-  echo "preflight check passed"
+  echo "${GREEN}preflight check passed${NC}" 1>&2
 }
 
 # setup function to initialize variables
 # Usage: setup
 setup() {
+  export GREEN='\e[1;32m'
+  export RED='\e[0;31m'
+  export YELLOW='\e[1;33m'
+  export NC='\e[0m'
   local arch=$(uname -m)
   case $arch in
     x86_64) arch=amd64;;
@@ -136,5 +161,9 @@ add_repo() {
   argocd repo add $1 --username $2 --password $3 --insecure-skip-server-verification
 }
 
-# call prefight check
+echo Welcome to Kubula!
+setup
+print_logo
+echo "${YELLOW}Running preflight checks${NC}"
+echo
 preflight_check
