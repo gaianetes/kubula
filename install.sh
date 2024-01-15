@@ -3,19 +3,18 @@
 # function to print logo with proper color
 # Usage: print_logo
 print_logo() {
-  echo "${GREEN}"
   echo "                                                                                     "
-  echo "      ___           ___                         ___                         ___      "
-  echo "     /__/|         /__/\         _____         /__/\                       /  /\     "
-  echo "    |  |:|         \  \:\       /  /::\        \  \:\                     /  /::\    "
-  echo "    |  |:|          \  \:\     /  /:/\:\        \  \:\    ___     ___    /  /:/\:\   "
-  echo "  __|  |:|      ___  \  \:\   /  /:/~/::\   ___  \  \:\  /__/\   /  /\  /  /:/~/::\  "
-  echo " /__/\_|:|____ /__/\  \__\:\ /__/:/ /:/\:| /__/\  \__\:\ \  \:\ /  /:/ /__/:/ /:/\:\ "
-  echo " \  \:\/:::::/ \  \:\ /  /:/ \  \:\/:/~/:/ \  \:\ /  /:/  \  \:\  /:/  \  \:\/:/__\/ "
-  echo "  \  \::/~~~~   \  \:\  /:/   \  \::/ /:/   \  \:\  /:/    \  \:\/:/    \  \::/      "
-  echo "   \  \:\        \  \:\/:/     \  \:\/:/     \  \:\/:/      \  \::/      \  \:\      "
-  echo "    \  \:\        \  \::/       \  \::/       \  \::/        \__\/        \  \:\     "
-  echo "     \__\/         \__\/         \__\/         \__\/                       \__\/     "
+  echo "${GREEN}      ___      ${YELLOW}     ___      ${BLUE}              ${PINK}     ___      ${CYAN}              ${RED}     ___      "
+  echo "${GREEN}     /__/|     ${YELLOW}    /__/\     ${BLUE}    _____     ${PINK}    /__/\     ${CYAN}              ${RED}    /  /\     "
+  echo "${GREEN}    |  |:|     ${YELLOW}    \  \:\    ${BLUE}   /  /::\    ${PINK}    \  \:\    ${CYAN}              ${RED}   /  /::\    "
+  echo "${GREEN}    |  |:|     ${YELLOW}     \  \:\   ${BLUE}  /  /:/\:\   ${PINK}     \  \:\   ${CYAN} ___     ___  ${RED}  /  /:/\:\   "
+  echo "${GREEN}  __|  |:|     ${YELLOW} ___  \  \:\  ${BLUE} /  /:/~/::\  ${PINK} ___  \  \:\  ${CYAN}/__/\   /  /\ ${RED} /  /:/~/::\  "
+  echo "${GREEN} /__/\_|:|____ ${YELLOW}/__/\  \__\:\ ${BLUE}/__/:/ /:/\:| ${PINK}/__/\  \__\:\ ${CYAN}\  \:\ /  /:/ ${RED}/__/:/ /:/\:\ "
+  echo "${GREEN} \  \:\/:::::/ ${YELLOW}\  \:\ /  /:/ ${BLUE}\  \:\/:/~/:/ ${PINK}\  \:\ /  /:/ ${CYAN} \  \:\  /:/  ${RED}\  \:\/:/__\/ "
+  echo "${GREEN}  \  \::/~~~~  ${YELLOW} \  \:\  /:/  ${BLUE} \  \::/ /:/  ${PINK} \  \:\  /:/  ${CYAN}  \  \:\/:/   ${RED} \  \::/      "
+  echo "${GREEN}   \  \:\      ${YELLOW}  \  \:\/:/   ${BLUE}  \  \:\/:/   ${PINK}  \  \:\/:/   ${CYAN}   \  \::/    ${RED}  \  \:\      "
+  echo "${GREEN}    \  \:\     ${YELLOW}   \  \::/    ${BLUE}   \  \::/    ${PINK}   \  \::/    ${CYAN}    \__\/     ${RED}   \  \:\     "
+  echo "${GREEN}     \__\/     ${YELLOW}    \__\/     ${BLUE}    \__\/     ${PINK}    \__\/     ${CYAN}              ${RED}    \__\/     "
   echo "                                                                                     "
   echo "${NC}"
 }
@@ -31,31 +30,31 @@ preflight_check() {
 
   # check if flux is installed
   if ! [ -x "$(command -v flux)" ]; then
-      echo "${RED}flux is not installed.${NC} ${WHITE}Please install flux first.${NC}" 1>&2
+      echo "${RED}flux is not installed. ${WHITE}Please install flux first.${NC}" 1>&2
       passed=false
   fi
 
   # check that argocd is installed
   if ! [ -x "$(command -v argocd)" ]; then
-      echo "${RED}argocd is not installed.${NC} ${WHITE}Please install argocd first.{NC}" 1>&2
+      echo "${RED}argocd is not installed. ${WHITE}Please install argocd first.{NC}" 1>&2
       passed=false
   fi
 
   # check that kubectl is installed
   if ! [ -x "$(command -v kubectl)" ]; then
-      echo "${RED}kubectl is not installed.${NC} ${WHITE}Please install kubectl first.${NC}" 1>&2
+      echo "${RED}kubectl is not installed. ${WHITE}Please install kubectl first.${NC}" 1>&2
       passed=false
   fi
 
   # check that kustomize is installed
   if ! [ -x "$(command -v kustomize)" ]; then
-      echo "${RED}kustomize is not installed.${NC} ${WHITE} Please install kustomize first.${NC}" 1>&2
+      echo "${RED}kustomize is not installed. ${WHITE} Please install kustomize first.${NC}" 1>&2
       passed=false
   fi
 
   # check that helm is installed
   if ! [ -x "$(command -v helm)" ]; then
-      echo "${RED}helm is not installed.${NC} ${WHITE} Please install helm first.${NC}" 1>&2
+      echo "${RED}helm is not installed. ${WHITE} Please install helm first.${NC}" 1>&2
       passed=false
   fi
 
@@ -165,9 +164,9 @@ add_repo() {
   argocd repo add $1 --username $2 --password $3 --insecure-skip-server-verification
 }
 
-echo Welcome to Kubula!
+# echo "Welcome to Kubula!" 1>&2
 setup
 print_logo
-echo "${YELLOW}Running preflight checks${NC}"
+echo "${YELLOW}Running preflight checks${NC}" 1>&2
 echo
 preflight_check
