@@ -69,8 +69,13 @@ preflight_check() {
 }
 
 # setup function to initialize variables
-# Usage: setup
+# Usage: setup <github_repo> <github_user> <github_token>
 setup() {
+  # ensure all arguments are passed
+  if [ $# -ne 3 ]; then
+      echo "Usage: setup <github_repo> <github_user> <github_token>"
+      exit 1
+  fi
   export GREEN=$(tput setaf 2)
   export RED=$(tput setaf 1)
   export YELLOW=$(tput setaf 3)
@@ -79,6 +84,9 @@ setup() {
   export CYAN=$(tput setaf 6)
   export WHITE=$(tput setaf 7)
   export NC='\e[0m'
+  export GITHUB_TOKEN=$3
+  export GITHUB_USER=$2
+  export GITHUB_REPO=$1
   local arch=$(uname -m)
   case $arch in
     x86_64) arch=amd64;;
@@ -130,7 +138,23 @@ install_kustomize() {
   sudo install -m 555 kustomize /usr/local/bin/kustomize
   rm kustomize
 }
-    
+
+# function to bootstrap a cluster using flux
+# Usage: bootstrap <cluster_name>
+flux_bootstrap() {
+  # ensure all arguments are passed
+  if [ $# -ne 1 ]; then
+    echo "Usage: bootstrap <cluster_name>"
+    exit 1
+  fi
+  flux bootstrap github \
+      --owner=$GITHUB_USER \
+      --repository=$GITHUB_REPO \
+      --path="flux/clusters/$1" \
+      --token-auth \
+      --personal \
+      --branch=main
+}
 
 # function to add a cluster to argocd
 # Usage: add_cluster <cluster_name> <cluster_context>
@@ -165,8 +189,12 @@ add_repo() {
 }
 
 # echo "Welcome to Kubula!" 1>&2
-setup
+setup "https://github.com/gaianetes/kubula.git" $GITHUB_USER $GAIANETES_PAT
 print_logo
 echo "${YELLOW}Running preflight checks${NC}" 1>&2
 echo
 preflight_check
+echo
+echo "${YELLOW}Bootstrapping mgmt cluster with flux${NC}" 1>&2
+echo
+flux_bootstrap "mgmt"
