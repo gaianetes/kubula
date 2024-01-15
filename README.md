@@ -1,4 +1,4 @@
-# Kubula - Flux Bootstrapper for Kubernetes
+# Kubula - Bootstrapper for Kubernetes
 
 ![Kubula](media/kubula-scaled.png)
 
