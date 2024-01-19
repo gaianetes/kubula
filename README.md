@@ -1,6 +1,6 @@
 # Kubula - Bootstrapper for Kubernetes
 
-![Kubula](media/kubula-scaled.png)
+![Kubula](media/hyper-kubula-transparent.png)
 
 ## What is Kubula?
 

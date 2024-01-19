@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -euo pipefail
+
 # function to print logo with proper color
 # Usage: print_logo
 print_logo() {
@@ -213,7 +215,7 @@ install_appset() {
 }
 
 # echo "Welcome to Kubula!" 1>&2
-setup "https://github.com/gaianetes/kubula.git" $GITHUB_USER $GAIANETES_PAT
+setup "https://github.com/gaianetes/kubula.git" $GITHUB_USER $GITHUB_TOKEN
 print_logo
 echo "${YELLOW}Running preflight checks${NC}" 1>&2
 echo
