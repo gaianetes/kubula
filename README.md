@@ -1,24 +1,116 @@
-# Kubula - Bootstrapper for Kubernetes
+<!-- Improved compatibility of back to top link: See: https://github.com/othneildrew/Best-README-Template/pull/73 -->
+<a name="readme-top"></a>
+<!--
+*** Thanks for checking out the Best-README-Template. If you have a suggestion
+*** that would make this better, please fork the repo and create a pull request
+*** or simply open an issue with the tag "enhancement".
+*** Don't forget to give the project a star!
+*** Thanks again! Now go create something AMAZING! :D
+-->
 
-![Kubula](media/hyper-kubula-transparent.png)
 
-## What is Kubula?
 
-Kubula is a tool that helps you bootstrap your Kubernetes cluster using [Flux](https://fluxcd.io/). It is a wrapper around Flux that helps you get started with Flux and Kubernetes.
+<!-- PROJECT SHIELDS -->
+<!--
+*** I'm using markdown "reference style" links for readability.
+*** Reference links are enclosed in brackets [ ] instead of parentheses ( ).
+*** See the bottom of this document for the declaration of the reference variables
+*** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
+*** https://www.markdownguide.org/basic-syntax/#reference-style-links
+-->
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![MIT License][license-shield]][license-url]
+[![LinkedIn][linkedin-shield]][linkedin-url]
 
-## Components
 
-- Argo CD
-- Prometheus
 
-## Prerequisites
+<!-- PROJECT LOGO -->
+<br />
+<div align="center">
+  <a href="https://github.com/gaianetes/kubula">
+    <img src="images/logo.png" alt="Logo" width="380" height="380">
+  </a>
 
+<h3 align="center">Kubula</h3>
+
+  <p align="center">
+    Kubula is a tool that helps you bootstrap your Kubernetes cluster using [Flux](https://fluxcd.io/). It is a wrapper around Flux that helps you get started with Flux and Kubernetes.
+    <br />
+    <a href="https://github.com/gaianetes/kubula"><strong>Explore the docs »</strong></a>
+    <br />
+    <br />
+    <a href="https://github.com/gaianetes/kubula">View Demo</a>
+    ·
+    <a href="https://github.com/gaianetes/kubula/issues">Report Bug</a>
+    ·
+    <a href="https://github.com/gaianetes/kubula/issues">Request Feature</a>
+  </p>
+</div>
+
+
+
+<!-- TABLE OF CONTENTS -->
+<details>
+  <summary>Table of Contents</summary>
+  <ol>
+    <li>
+      <a href="#about-the-project">About The Project</a>
+      <ul>
+        <li><a href="#built-with">Built With</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#getting-started">Getting Started</a>
+      <ul>
+        <li><a href="#prerequisites">Prerequisites</a></li>
+        <li><a href="#installation">Installation</a></li>
+      </ul>
+    </li>
+    <li><a href="#usage">Usage</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#contributing">Contributing</a></li>
+    <li><a href="#license">License</a></li>
+    <li><a href="#contact">Contact</a></li>
+    <li><a href="#acknowledgments">Acknowledgments</a></li>
+  </ol>
+</details>
+
+
+
+<!-- ABOUT THE PROJECT -->
+## About The Project
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+### Built With
+
+* [![RockyLinux][RockyLinuxBadge]][RockyLinux-url]
+* [![Ansible][AnsibleBadge]][Ansible-url]
+* [![Terraform][TerraformBadge]][Terraform-url]
+* [![Packer][PackerBadge]][Packer-url]
+* [![ArgoCD][ArgoCDBadge]][ArgoCD-url]
+* [![Flux][FluxBadge]][Flux-url]
+* [![Kubernetes][KubernetesBadge]][Kubernetes-url]
+* [![Rancher][RancherBadge]][Rancher-url]
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+### Prerequisites
+
+- [oVirt](https://www.ovirt.org/download/)
 - A Kubernetes [cluster](https://mitchmurphy.io/cilium-rke2/)
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
 - [flux CLI](https://fluxcd.io/flux/installation/)
 - [flamingo CLI](https://flux-subsystem-argo.github.io/website/)
+- [argocd cli](https://argo-cd.readthedocs.io/en/stable/cli_installation/)
+- [terraform cli](https://www.terraform.io/downloads.html)
+- [packer cli](https://www.packer.io/downloads)
+- [ansible cli](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html)
 
-## Bootstrap
+### Bootstrap
 
 This repository will serve as the source of truth for your cluster. You can clone this repository, change the remote, make changes to it and commit. The changes will be applied to your cluster.
 
@@ -34,7 +126,7 @@ export CLUSTER_NAME=<your-cluster-name>
 flux bootstrap github \
     --owner=$GITHUB_USER \
     --repository=$GITHUB_REPO \
-    —-path="clusters/$CLUSTER_NAME" \
+    —-path="applications/flux/clusters/$CLUSTER_NAME" \
     --token-auth \
     --personal \
     --branch=main
@@ -65,7 +157,9 @@ source-controller-7f9f9f6f8f-2q9qz         1/1     Running   0          2m
 flamingo install
 ```
 
-### Install Cilium
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+#### Install Cilium
 
 We can use Flamingo to install Cilium. The Cilium Helm chart is defined in `clusters/$CLUSTER_NAME/cilium/01-cilium-helmrelease.yaml`. You can change the values in `clusters/$CLUSTER_NAME/cilium/01-cilium-helmrelease.yaml` to customize the installation. Once you are done, commit the changes and push them to the repository. Flux will apply the changes to your cluster.
 
@@ -77,7 +171,9 @@ $ git push origin main
 
 _Note_ - We have set `serviceMonitor.enabled` to `false` as the Prometheus CRDs need to be installed before we can enable this, and since we are replaing `kube-proxy` with `cilium`, we need to install Cilium first. After installing Prometheus, you can set this to `true` and commit the changes.
 
-### Install Argo CD
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+#### Install Argo CD
 
 We can now use Flux to install Argo CD. We will use a HelmRelease to install Argo CD. The HelmRelease is defined in `clusters/$CLUSTER_NAME/argo-cd/argocd-helmrelease.yaml`. You can change the values in `clusters/$CLUSTER_NAME/argo-cd/02-argo-cd-helmrelease.yaml` to customize the installation. Once you are done, commit the changes and push them to the repository. Flux will apply the changes to your cluster.
 
@@ -95,7 +191,9 @@ NAMESPACE       NAME    REVISION        SUSPENDED       READY   MESSAGE
 argocd          argocd  5.51.0          False           True    Helm install succeeded for release argocd/argocd-argocd.v1 with chart argo-cd@5.51.0
 ```
 
-### Install Prometheus
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+#### Install Prometheus
 
 Similar to Argo CD, we can use a `HelmRelease` to install the Prometheus Kube Stack. The `HelmRelease` is defined in `clusters/$CLUSTER_NAME/prometheus/03-prom-helmrelease.yaml`. You can change the values in `clusters/$CLUSTER_NAME/prometheus/03-prome-helmrelease.yaml` to customize the installation. Once you are done, commit the changes and push them to the repository. Flux will apply the changes to your cluster.
 
@@ -104,33 +202,110 @@ $ git add .
 $ git commit -m "Install Prometheus"
 $ git push origin main
 ```
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-## References
+<!-- USAGE EXAMPLES -->
+## Usage
 
-- https://fluxcd.io/docs/get-started/
-- https://argoproj.github.io/cd/
-- https://docs.rke2.io/helm
+Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources.
 
+_For more examples, please refer to the [Documentation](https://example.com)_
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- ROADMAP -->
+## Roadmap
+
+- [ ] Feature 1
+- [ ] Feature 2
+- [ ] Feature 3
+    - [ ] Nested Feature
+
+See the [open issues](https://github.com/gaianetes/kubula/issues) for a full list of proposed features (and known issues).
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- CONTRIBUTING -->
 ## Contributing
 
-1. Fork it!
-2. Create your feature branch: `git checkout -b my-new-feature`
-3. Commit your changes: `git commit -am 'Add some feature'`
-4. Push to the branch: `git push origin my-new-feature`
-5. Submit a pull request :D
+Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
-## Credits
+If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
+Don't forget to give the project a star! Thanks again!
 
-Lead Developer - [Mitchell Murphy](mitch.murphy@gmail.com)
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- LICENSE -->
 ## License
 
-The MIT License (MIT)
+Distributed under the MIT License. See [LICENSE](./LICENSE.md) for more information.
 
-Copyright (c) 2023 Mitchell Murphy
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+<!-- CONTACT -->
+## Contact
+
+Mitchell Murphy - [@kubula](https://twitter.com/kubula) - mitch@smigula.io.com
+
+Project Link: [https://github.com/gaianetes/kubula](https://github.com/gaianetes/kubula)
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- ACKNOWLEDGMENTS -->
+## Acknowledgments
+
+* []()
+* []()
+* []()
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- MARKDOWN LINKS & IMAGES -->
+<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+[contributors-shield]: https://img.shields.io/github/contributors/gaianetes/kubula.svg?style=for-the-badge
+[contributors-url]: https://github.com/gaianetes/kubula/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/gaianetes/kubula.svg?style=for-the-badge
+[forks-url]: https://github.com/gaianetes/kubula/network/members
+[stars-shield]: https://img.shields.io/github/stars/gaianetes/kubula.svg?style=for-the-badge
+[stars-url]: https://github.com/gaianetes/kubula/stargazers
+[issues-shield]: https://img.shields.io/github/issues/gaianetes/kubula.svg?style=for-the-badge
+[issues-url]: https://github.com/gaianetes/kubula/issues
+[license-shield]: https://img.shields.io/github/license/gaianetes/kubula.svg?style=for-the-badge
+[license-url]: https://github.com/gaianetes/kubula/blob/master/LICENSE.md
+[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
+[linkedin-url]: https://linkedin.com/in/mkm29
+[product-screenshot]: images/screenshot.pn
+[Ansible-url]: https://www.ansible.com/
+[AnsibleBadge]: https://img.shields.io/badge/ansible-%231A1918.svg?style=for-the-badge&logo=ansible&logoColor=white
+[RockyLinuxBadge]: https://img.shields.io/badge/Rocky%20Linux-8.4-blue?style=for-the-badge&logo=rocky%20linux
+[RockyLinux-url]: https://www.rockylinux.org/
+[TerraformBadge]: https://img.shields.io/badge/terraform-%235835CC.svg?style=for-the-badge&logo=terraform&logoColor=white
+[Terraform-url]: https://www.terraform.io/
+[Packer-url]: https://www.packer.io/
+[PackerBadge]: https://img.shields.io/badge/packer-%23E7EEF0.svg?style=for-the-badge&logo=packer&logoColor=%2302A8EF
+[ArgoCDBadge]: https://img.shields.io/badge/Vue.js-35495E?style=for-the-badge&logo=vuedotjs&logoColor=4FC08D
+[ArgoCD-url]: https://argo-cd.readthedocs.io/
+[FluxBadge]: https://img.shields.io/badge/flux-%2300BEBB.svg?style=for-the-badge&logo=flux&logoColor=white
+[Flux-url]: https://fluxcd.io/
+[KubernetesBadge]: https://img.shields.io/badge/kubernetes-%23326ce5.svg?style=for-the-badge&logo=kubernetes&logoColor=white
+[Kubernetes-url]: https://svelte.dev/
+[RancherBadge]: https://img.shields.io/badge/rancher-%230075A8.svg?style=for-the-badge&logo=rancher&logoColor=white
+[Rancher-url]: https://laravel.com
