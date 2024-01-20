@@ -259,7 +259,7 @@ Distributed under the MIT License. See [LICENSE](./LICENSE.md) for more informat
 <!-- CONTACT -->
 ## Contact
 
-Mitchell Murphy - [@kubula](https://twitter.com/kubula) - mitch@smigula.io.com
+Mitchell Murphy - [@kubula](https://twitter.com/kubula) - mitch@smigula.io
 
 Project Link: [https://github.com/gaianetes/kubula](https://github.com/gaianetes/kubula)
 
