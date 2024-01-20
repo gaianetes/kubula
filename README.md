@@ -83,6 +83,8 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
+Kubula is a tool that helps you bootstrap your Kubernetes cluster using [Flux](https://fluxcd.io/). It is a wrapper around Flux that helps you get started with Flux and Kubernetes.
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### Built With
@@ -213,21 +215,36 @@ _For more examples, please refer to the [Documentation](https://example.com)_
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-
-
 <!-- ROADMAP -->
 ## Roadmap
 
-- [ ] Feature 1
-- [ ] Feature 2
-- [ ] Feature 3
-    - [ ] Nested Feature
+- [x] Flux Bootstrap
+- [x] ArgoCD
+  - [x] Prometheus-Loki-Grafana
+  - [x] MetalLB
+  - [ ] Aqua Tracee
+  - [ ] Aqua Falco
+  - [ ] Gatekeeper
+  - [ ] Kyverno
+  - [ ] Keycloak
+  - [ ] Harbor
+  - [ ] Velero
+  - [ ] KubeVirt
+  - [ ] Argo Workflows
+  - [ ] Argo Events
+  - [ ] MinIO
+- [ ] Infrastructure
+    - [ ] Ansible
+      - [ ] GlusterFS
+      - [ ] RKE2
+    - [ ] Terraform
+      - [ ] oVirt
+      - [ ] AWS
+      - [ ] GCP
 
 See the [open issues](https://github.com/gaianetes/kubula/issues) for a full list of proposed features (and known issues).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 
 <!-- CONTRIBUTING -->
 ## Contributing
@@ -245,16 +262,12 @@ Don't forget to give the project a star! Thanks again!
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-
-
 <!-- LICENSE -->
 ## License
 
 Distributed under the MIT License. See [LICENSE](./LICENSE.md) for more information.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 
 <!-- CONTACT -->
 ## Contact
@@ -265,8 +278,6 @@ Project Link: [https://github.com/gaianetes/kubula](https://github.com/gaianetes
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-
-
 <!-- ACKNOWLEDGMENTS -->
 ## Acknowledgments
 
@@ -275,8 +286,6 @@ Project Link: [https://github.com/gaianetes/kubula](https://github.com/gaianetes
 * []()
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
@@ -292,7 +301,7 @@ Project Link: [https://github.com/gaianetes/kubula](https://github.com/gaianetes
 [license-url]: https://github.com/gaianetes/kubula/blob/master/LICENSE.md
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://www.linkedin.com/in/mitchellmurphy/
-[product-screenshot]: images/screenshot.pn
+[product-screenshot]: images/screenshot.png
 [Ansible-url]: https://www.ansible.com/
 [AnsibleBadge]: https://img.shields.io/badge/ansible-%231A1918.svg?style=for-the-badge&logo=ansible&logoColor=white
 [RockyLinuxBadge]: https://img.shields.io/badge/Rocky%20Linux-8.4-blue?style=for-the-badge&logo=rocky%20linux
