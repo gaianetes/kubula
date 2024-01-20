@@ -125,6 +125,7 @@ export GITHUB_TOKEN=<your-token>
 export GITHUB_USER=<your-username>
 export GITHUB_REPO=<your-repo>
 export CLUSTER_NAME=<your-cluster-name>
+kubectl config use-context $CLUSTER_NAME
 flux bootstrap github \
     --owner=$GITHUB_USER \
     --repository=$GITHUB_REPO \
@@ -219,20 +220,39 @@ _For more examples, please refer to the [Documentation](https://example.com)_
 ## Roadmap
 
 - [x] Flux Bootstrap
-- [x] ArgoCD
-  - [x] Prometheus-Loki-Grafana
+  - [x] kube-prometheus-stack
+  - [x] Longhorn
   - [x] MetalLB
-  - [ ] Aqua Tracee
-  - [ ] Aqua Falco
-  - [ ] Gatekeeper
-  - [ ] Kyverno
+  - [x] ArgoCD
+- [ ] ArgoCD Applications
+  - [ ] MinIO
+  - [ ] PLG Applicationset
+    - [ ] Loki
+    - [ ] Grafana
+  - [ ] Core Security Applications
+    - [ ] Falco
+    - [ ] Gatekeeper
+    - [ ] Kyverno
+    - [ ] Trivy
+    - [ ] Coroot
+    - [ ] Aqua
+      - [ ] Tracee
+      - [ ] Falco
   - [ ] Keycloak
   - [ ] Harbor
   - [ ] Velero
   - [ ] KubeVirt
   - [ ] Argo Workflows
   - [ ] Argo Events
-  - [ ] MinIO
+  - [ ] MediaServer
+    - [ ] Plex
+    - [ ] Sonarr
+    - [ ] Radarr
+    - [ ] Prowlarr
+    - [ ] OpenVPN
+    - [ ] Transmission
+    - [ ] Jackett
+    - [ ] Bazarr
 - [ ] Infrastructure
     - [ ] Ansible
       - [ ] GlusterFS
