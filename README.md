@@ -291,7 +291,7 @@ Project Link: [https://github.com/gaianetes/kubula](https://github.com/gaianetes
 [license-shield]: https://img.shields.io/github/license/gaianetes/kubula.svg?style=for-the-badge
 [license-url]: https://github.com/gaianetes/kubula/blob/master/LICENSE.md
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
-[linkedin-url]: https://linkedin.com/in/mkm29
+[linkedin-url]: https://www.linkedin.com/in/mitchellmurphy/
 [product-screenshot]: images/screenshot.pn
 [Ansible-url]: https://www.ansible.com/
 [AnsibleBadge]: https://img.shields.io/badge/ansible-%231A1918.svg?style=for-the-badge&logo=ansible&logoColor=white
@@ -301,7 +301,7 @@ Project Link: [https://github.com/gaianetes/kubula](https://github.com/gaianetes
 [Terraform-url]: https://www.terraform.io/
 [Packer-url]: https://www.packer.io/
 [PackerBadge]: https://img.shields.io/badge/packer-%23E7EEF0.svg?style=for-the-badge&logo=packer&logoColor=%2302A8EF
-[ArgoCDBadge]: https://img.shields.io/badge/Vue.js-35495E?style=for-the-badge&logo=vuedotjs&logoColor=4FC08D
+[ArgoCDBadge]: https://img.shields.io/badge/Argo-EF7B4D?logo=argo&logoColor=fff&style=for-the-badge
 [ArgoCD-url]: https://argo-cd.readthedocs.io/
 [FluxBadge]: https://img.shields.io/badge/flux-%2300BEBB.svg?style=for-the-badge&logo=flux&logoColor=white
 [Flux-url]: https://fluxcd.io/
