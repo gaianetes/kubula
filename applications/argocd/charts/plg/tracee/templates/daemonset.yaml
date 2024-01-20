@@ -1,0 +1,151 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "tracee.fullname" . }}
+  labels:
+    {{- include "tracee.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "tracee.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "tracee.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "tracee.serviceAccountName" . }}
+      hostPID: {{ .Values.hostPID }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: tracee
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /tracee/tracee
+          args:
+            - --policy
+            - /tracee/policies
+            - --config
+            - /tracee/config.yaml
+          {{- if .Values.webhook }}
+            - --output webhook:{{ .Values.webhook }}
+          {{- end }}
+          env:
+            - name: LIBBPFGO_OSRELEASE_FILE
+              value: /etc/os-release-host
+            # - name: LIBBPFGO_BOOTCONFIG_FILE
+            #   value: /boot/config-6.6.7-1.el8.elrepo.x86_64
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          {{- if .Values.config.healthz }}
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ trimPrefix ":" .Values.config.listenAddr }}
+          {{- end }}
+          volumeMounts:
+            - name: tmp-tracee
+              mountPath: /tmp/tracee
+            - name: etc-os-release
+              mountPath: /etc/os-release-host
+              readOnly: true
+            - name: boot-config
+              mountPath: /boot/config-6.6.7-1.el8.elrepo.x86_64
+              readOnly: true
+            - mountPath: /var/run/containerd/containerd.sock
+              name: containerd-sock
+              readOnly: true
+            - mountPath: /var/run/crio/crio.sock
+              name: crio-sock
+              readOnly: true
+            - mountPath: /var/run/docker.sock
+              name: docker-sock
+              readOnly: true
+            - mountPath: /var/run/podman/podman.sock
+              name: podman-sock
+              readOnly: true
+            - name: tracee-config
+              readOnly: true
+              mountPath: /tracee/config.yaml
+              subPath: config.yaml
+            - name: tracee-policies
+              readOnly: true
+              mountPath: /tracee/policies
+            {{- if .Values.signatures.config }}
+            - name: tracee-signatures
+              mountPath: /tracee/signatures/signatures.yaml
+              subPath: signatures.yaml
+              readOnly: true
+            {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: tmp-tracee
+          hostPath:
+            path: /tmp/tracee
+        - name: etc-os-release
+          hostPath:
+            path: /etc/os-release
+        - name: boot-config
+          hostPath:
+            path: /boot/config-6.6.7-1.el8.elrepo.x86_64
+        - name: containerd-sock
+          hostPath:
+            path: /var/run/containerd/containerd.sock
+        - name: crio-sock
+          hostPath:
+            path: /var/run/crio/crio.sock
+        - name: podman-sock
+          hostPath:
+            path: /var/run/podman/podman.sock
+        - name: docker-sock
+          hostPath:
+            path: /var/run/docker.sock
+        - name: tracee-config
+          configMap:
+            name: tracee-config
+        - name: tracee-policies
+          configMap:
+            name: tracee-policies
+        {{- if .Values.signatures.config }}
+        - name: tracee-signatures
+          configMap:
+            name: tracee-signatures
+            items:
+              - key: signatures.yaml
+                path: signatures.yaml
+        {{- end }}
+{{- if .Values.signatures.config }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tracee-signatures
+  labels:
+    {{- include "tracee.labels" . | nindent 4 }}
+data:
+  signatures.yaml: |-
+    {{- toYaml .Values.signatures.config | nindent 4 }}
+{{- end }}
