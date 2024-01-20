@@ -34,6 +34,12 @@ preflight_check() {
   if ! [ -x "$(command -v flux)" ]; then
       echo "${RED}flux is not installed. ${WHITE}Please install flux first.${NC}" 1>&2
       passed=false
+  else
+    # check if flux is running
+    if ! [ "$(flux check --pre)" ]; then
+      echo "${RED}flux prerequisites checks failed.${NC}" 1>&2
+      passed=false
+    fi
   fi
 
   # check that argocd is installed
