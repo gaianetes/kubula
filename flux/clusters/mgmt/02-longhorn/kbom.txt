@@ -1,0 +1,174 @@
+
+Summary Report for smig-cluster1
+================================
+
+Workload Assessment
+┌─────────────────┬──────────────────────────────────────────────────────────────┬───────────────────────────┬──────────────────────┬───────────────────┐
+│    Namespace    │                           Resource                           │      Vulnerabilities      │  Misconfigurations   │      Secrets      │
+│                 │                                                              ├────┬─────┬─────┬─────┬────┼───┬────┬────┬────┬───┼───┬───┬───┬───┬───┤
+│                 │                                                              │ C  │  H  │  M  │  L  │ U  │ C │ H  │ M  │ L  │ U │ C │ H │ M │ L │ U │
+├─────────────────┼──────────────────────────────────────────────────────────────┼────┼─────┼─────┼─────┼────┼───┼────┼────┼────┼───┼───┼───┼───┼───┼───┤
+│ monitoring      │ Deployment/prometheus-kube-stack-kube-state-metrics          │    │     │     │     │    │   │ 1  │    │ 6  │   │   │   │   │   │   │
+│ monitoring      │ Deployment/prometheus-kube-stack-kube-operator               │    │     │  1  │     │    │   │    │    │ 6  │   │   │   │   │   │   │
+│ monitoring      │ StatefulSet/alertmanager-prometheus-kube-stack-kube-alertma- │    │  2  │  8  │     │    │   │    │    │ 17 │   │   │   │   │   │   │
+│                 │ nager                                                        │    │     │     │     │    │   │    │    │    │   │   │   │   │   │   │
+│ monitoring      │ Deployment/prometheus-kube-stack-grafana                     │ 1  │ 13  │ 38  │     │    │   │ 3  │    │ 18 │   │   │   │   │   │   │
+│ monitoring      │ ConfigMap/prometheus-prometheus-kube-stack-kube-prometheus-- │    │     │     │     │    │   │    │ 1  │    │   │   │   │   │   │   │
+│                 │ rulefiles-0                                                  │    │     │     │     │    │   │    │    │    │   │   │   │   │   │   │
+│ monitoring      │ DaemonSet/prometheus-kube-stack-prometheus-node-exporter     │    │     │  1  │     │    │   │ 3  │ 3  │ 9  │   │   │   │   │   │   │
+│ monitoring      │ StatefulSet/prometheus-prometheus-kube-stack-kube-prometheus │    │     │  6  │     │    │   │    │    │ 18 │   │   │   │   │   │   │
+│ metallb-system  │ Deployment/metallb-controller                                │    │  2  │  8  │     │    │   │    │ 1  │ 7  │   │   │   │   │   │   │
+│ metallb-system  │ DaemonSet/metallb-speaker                                    │    │ 22  │ 88  │     │    │   │ 10 │ 23 │ 62 │   │   │   │   │   │   │
+│ longhorn-system │ Pod/instance-manager-df1af225a7cac6ba29cb5a6d4eaa0211        │    │     │  1  │ 1   │ 1  │   │ 3  │ 4  │ 8  │   │   │   │   │   │   │
+│ longhorn-system │ DaemonSet/longhorn-csi-plugin                                │    │  2  │     │ 1   │ 1  │   │ 8  │ 11 │ 27 │   │   │   │   │   │   │
+│ longhorn-system │ DaemonSet/engine-image-ei-acb7590c                           │    │     │  1  │ 1   │ 1  │   │ 2  │ 4  │ 9  │   │   │   │   │   │   │
+│ longhorn-system │ Deployment/csi-resizer                                       │    │     │     │     │    │   │ 1  │ 4  │ 9  │   │   │   │   │   │   │
+│ longhorn-system │ Deployment/csi-snapshotter                                   │    │     │     │     │    │   │ 1  │ 4  │ 9  │   │   │   │   │   │   │
+│ longhorn-system │ Pod/instance-manager-0b9065d358e409e5a7c6f01d35d0e5b5        │    │     │  1  │ 1   │ 1  │   │ 3  │ 4  │ 8  │   │   │   │   │   │   │
+│ longhorn-system │ DaemonSet/longhorn-manager                                   │    │  2  │     │ 1   │ 1  │   │ 2  │ 4  │ 9  │   │   │   │   │   │   │
+│ longhorn-system │ Deployment/longhorn-driver-deployer                          │    │  4  │     │ 2   │ 2  │   │ 2  │ 6  │ 19 │   │   │   │   │   │   │
+│ longhorn-system │ Deployment/csi-provisioner                                   │    │     │     │     │    │   │ 1  │ 4  │ 9  │   │   │   │   │   │   │
+│ longhorn-system │ Deployment/longhorn-ui                                       │    │  2  │  1  │ 1   │ 1  │   │ 1  │ 3  │ 9  │   │   │   │   │   │   │
+│ longhorn-system │ Deployment/csi-attacher                                      │    │     │     │     │    │   │ 1  │ 4  │ 9  │   │   │   │   │   │   │
+│ kube-system     │ Pod/kube-scheduler-c1cp1.smigula.internal                    │    │ 11  │  8  │ 1   │ 1  │   │ 2  │ 4  │ 7  │   │   │   │   │   │   │
+│ kube-system     │ DaemonSet/rke2-ingress-nginx-controller                      │    │ 10  │ 13  │ 2   │ 6  │   │ 3  │ 4  │ 5  │   │   │   │   │   │   │
+│ kube-system     │ Job/helm-install-rke2-metrics-server                         │    │ 11  │ 35  │     │    │   │    │    │ 6  │   │   │   │   │   │   │
+│ kube-system     │ Job/helm-install-rke2-ingress-nginx                          │    │ 11  │ 35  │     │    │   │    │    │ 6  │   │   │   │   │   │   │
+│ kube-system     │ Deployment/rke2-metrics-server                               │    │ 15  │ 17  │ 4   │ 6  │   │    │ 1  │ 5  │   │   │   │   │   │   │
+│ kube-system     │ Deployment/rke2-coredns-rke2-coredns-autoscaler              │ 1  │ 16  │ 16  │ 4   │ 6  │   │ 1  │ 3  │ 5  │   │   │   │   │   │   │
+│ kube-system     │ ConfigMap/extension-apiserver-authentication                 │    │     │     │     │    │   │    │ 1  │    │   │   │   │   │   │   │
+│ kube-system     │ ConfigMap/cilium-config                                      │    │     │     │     │    │   │    │ 1  │    │   │   │   │   │   │   │
+│ kube-system     │ ConfigMap/chart-content-rke2-ingress-nginx                   │    │     │     │     │    │   │    │ 1  │    │   │   │   │   │   │   │
+│ kube-system     │ Deployment/rke2-snapshot-validation-webhook                  │    │     │     │     │    │   │    │ 2  │ 7  │   │   │   │   │   │   │
+│ kube-system     │ CronJob/clustermesh-apiserver-generate-certs                 │    │  1  │  2  │     │    │   │ 2  │ 3  │ 9  │   │   │   │   │   │   │
+│ kube-system     │ Job/helm-install-rke2-snapshot-controller                    │    │ 11  │ 35  │     │    │   │    │    │ 6  │   │   │   │   │   │   │
+│ kube-system     │ Deployment/rke2-coredns-rke2-coredns                         │    │ 14  │ 17  │ 4   │ 6  │   │ 2  │ 4  │ 5  │   │   │   │   │   │   │
+│ kube-system     │ Pod/kube-controller-manager-c1cp1.smigula.internal           │    │ 11  │  8  │ 1   │ 1  │   │ 2  │ 4  │ 7  │   │   │   │   │   │   │
+│ kube-system     │ Pod/kube-apiserver-c1cp1.smigula.internal                    │    │ 11  │  8  │ 1   │ 1  │   │ 2  │ 4  │ 8  │   │   │   │   │   │   │
+│ kube-system     │ Deployment/hubble-relay                                      │    │     │     │     │    │   │ 1  │ 2  │ 5  │   │   │   │   │   │   │
+│ kube-system     │ Deployment/hubble-ui                                         │ 5  │ 10  │ 26  │ 2   │    │   │ 2  │ 6  │ 18 │   │   │   │   │   │   │
+│ kube-system     │ DaemonSet/cilium                                             │    │     │ 56  │ 203 │    │   │ 26 │ 27 │ 59 │   │   │   │   │   │   │
+│ kube-system     │ ConfigMap/chart-content-rke2-snapshot-controller             │    │     │     │     │    │   │    │ 1  │    │   │   │   │   │   │   │
+│ kube-system     │ ConfigMap/hubble-relay-config                                │    │     │     │     │    │   │    │ 1  │    │   │   │   │   │   │   │
+│ kube-system     │ Job/helm-install-rke2-coredns                                │    │ 11  │ 35  │     │    │   │ 1  │    │ 6  │   │   │   │   │   │   │
+│ kube-system     │ Job/helm-install-rke2-snapshot-controller-crd                │    │ 11  │ 35  │     │    │   │    │    │ 6  │   │   │   │   │   │   │
+│ kube-system     │ Job/helm-install-rke2-snapshot-validation-webhook            │    │ 11  │ 35  │     │    │   │    │    │ 6  │   │   │   │   │   │   │
+│ kube-system     │ Deployment/cilium-operator                                   │    │     │     │     │    │   │ 3  │ 3  │ 9  │   │   │   │   │   │   │
+│ kube-system     │ Deployment/rke2-snapshot-controller                          │    │     │     │     │    │   │    │ 2  │ 7  │   │   │   │   │   │   │
+│ kube-system     │ Pod/etcd-c1cp1.smigula.internal                              │    │ 22  │ 25  │ 6   │ 10 │   │ 2  │ 4  │ 7  │   │   │   │   │   │   │
+│ kube-system     │ Deployment/clustermesh-apiserver                             │ 18 │ 122 │ 108 │ 144 │    │   │ 3  │ 9  │ 31 │   │   │   │   │   │   │
+│ kube-system     │ ConfigMap/chart-content-rke2-metrics-server                  │    │     │     │     │    │   │    │ 1  │    │   │   │   │   │   │   │
+│ flux-system     │ Deployment/helm-controller                                   │    │ 13  │ 28  │     │    │   │    │    │ 2  │   │   │   │   │   │   │
+│ flux-system     │ Deployment/notification-controller                           │    │ 11  │ 15  │     │    │   │    │    │ 2  │   │   │   │   │   │   │
+│ flux-system     │ Deployment/source-controller                                 │    │ 15  │ 30  │ 1   │    │   │    │    │ 2  │   │   │   │   │   │   │
+│ flux-system     │ Deployment/kustomize-controller                              │ 12 │ 26  │ 30  │ 3   │    │   │    │    │ 2  │   │   │   │   │   │   │
+│ argocd          │ StatefulSet/argocd-application-controller                    │ 1  │  8  │ 28  │ 52  │    │   │    │    │ 6  │   │   │   │   │   │   │
+│ argocd          │ Deployment/argocd-server                                     │ 1  │  8  │ 28  │ 52  │    │   │    │    │ 6  │   │   │   │   │   │   │
+│ argocd          │ Deployment/argocd-applicationset-controller                  │ 1  │  8  │ 28  │ 52  │    │   │    │    │ 6  │   │   │   │   │   │   │
+│ argocd          │ Deployment/argocd-redis                                      │    │  2  │  8  │     │    │   │    │    │ 6  │   │   │   │   │   │   │
+│ argocd          │ ConfigMap/argocd-cm                                          │    │     │     │     │    │   │    │ 1  │    │   │   │   │   │   │   │
+│ argocd          │ Deployment/argocd-dex-server                                 │ 5  │ 15  │ 51  │ 52  │    │   │    │    │ 12 │   │   │   │   │   │   │
+│ argocd          │ Deployment/argocd-repo-server                                │ 2  │ 16  │ 56  │ 104 │    │   │    │    │ 12 │   │   │   │   │   │   │
+│ argocd          │ Deployment/argocd-notifications-controller                   │ 1  │  8  │ 28  │ 52  │    │   │    │    │ 6  │   │   │   │   │   │   │
+│                 │ NodeComponents/c1w1.smigula.internal                         │    │     │  1  │     │    │   │    │    │    │   │   │   │   │   │   │
+│                 │ NodeComponents/c1cp1.smigula.internal                        │    │     │  1  │     │    │   │    │    │    │   │   │   │   │   │   │
+└─────────────────┴──────────────────────────────────────────────────────────────┴────┴─────┴─────┴─────┴────┴───┴────┴────┴────┴───┴───┴───┴───┴───┴───┘
+Severities: C=CRITICAL H=HIGH M=MEDIUM L=LOW U=UNKNOWN
+
+
+RBAC Assessment
+┌────────────────┬──────────────────────────────────────────────────────────────┬───────────────────┐
+│   Namespace    │                           Resource                           │  RBAC Assessment  │
+│                │                                                              ├───┬───┬───┬───┬───┤
+│                │                                                              │ C │ H │ M │ L │ U │
+├────────────────┼──────────────────────────────────────────────────────────────┼───┼───┼───┼───┼───┤
+│ metallb-system │ Role/metallb-controller                                      │   │   │ 3 │   │   │
+│ metallb-system │ Role/metallb-pod-lister                                      │   │   │ 1 │   │   │
+│ kube-system    │ Role/system:controller:bootstrap-signer                      │   │   │ 1 │   │   │
+│ kube-system    │ Role/system:controller:cloud-provider                        │   │   │ 1 │   │   │
+│ kube-system    │ Role/rke2-ingress-nginx                                      │   │   │ 1 │   │   │
+│ kube-system    │ Role/system:controller:token-cleaner                         │   │   │ 1 │   │   │
+│ kube-system    │ Role/system::leader-locking-kube-controller-manager          │   │   │ 1 │   │   │
+│ kube-system    │ Role/clustermesh-apiserver-generate-certs                    │   │   │ 3 │   │   │
+│ kube-system    │ Role/system::leader-locking-kube-scheduler                   │   │   │ 1 │   │   │
+│ kube-public    │ Role/system:controller:bootstrap-signer                      │   │   │ 1 │   │   │
+│ argocd         │ Role/argocd-server                                           │   │   │ 2 │   │   │
+│ argocd         │ Role/argocd-notifications-controller                         │   │   │ 2 │   │   │
+│ argocd         │ Role/argocd-applicationset-controller                        │   │   │ 2 │   │   │
+│ argocd         │ Role/argocd-dex-server                                       │   │   │ 1 │   │   │
+│ argocd         │ Role/argocd-application-controller                           │   │   │ 1 │   │   │
+│                │ ClusterRoleBinding/helm-kube-system-rke2-snapshot-validatio- │   │   │ 1 │   │   │
+│                │ n-webhook                                                    │   │   │   │   │   │
+│                │ ClusterRole/system:controller:endpoint-controller            │   │ 1 │   │   │   │
+│                │ ClusterRoleBinding/helm-kube-system-rke2-snapshot-controlle- │   │   │ 1 │   │   │
+│                │ r-crd                                                        │   │   │   │   │   │
+│                │ ClusterRole/prometheus-kube-stack-grafana-clusterrole        │ 1 │   │   │   │   │
+│                │ ClusterRole/crd-controller-flux-system                       │ 6 │   │ 1 │   │   │
+│                │ ClusterRole/metallb:controller                               │ 1 │   │   │   │   │
+│                │ ClusterRole/system:controller:endpointslice-controller       │   │ 1 │   │   │   │
+│                │ ClusterRole/system:controller:cronjob-controller             │   │   │ 3 │   │   │
+│                │ ClusterRole/system:controller:replicaset-controller          │   │   │ 2 │   │   │
+│                │ ClusterRole/system:kube-scheduler                            │   │   │ 1 │   │   │
+│                │ ClusterRole/rke2-cloud-controller-manager                    │ 1 │ 1 │ 2 │   │   │
+│                │ ClusterRole/rke2-coredns-rke2-coredns-autoscaler             │   │   │ 1 │   │   │
+│                │ ClusterRole/system:node                                      │ 1 │   │ 1 │   │   │
+│                │ ClusterRole/system:controller:generic-garbage-collector      │ 1 │   │   │   │   │
+│                │ ClusterRole/system:aggregate-to-admin                        │ 1 │   │   │   │   │
+│                │ ClusterRole/system:controller:daemon-set-controller          │   │   │ 1 │   │   │
+│                │ ClusterRole/argocd-server                                    │ 1 │   │ 1 │   │   │
+│                │ ClusterRole/system:controller:resourcequota-controller       │ 1 │   │   │   │   │
+│                │ ClusterRole/system:controller:statefulset-controller         │   │   │ 1 │   │   │
+│                │ ClusterRoleBinding/helm-kube-system-rke2-snapshot-controller │   │   │ 1 │   │   │
+│                │ ClusterRole/system:kube-controller-manager                   │ 5 │   │   │   │   │
+│                │ ClusterRole/system:controller:replication-controller         │   │   │ 2 │   │   │
+│                │ ClusterRole/system:controller:pod-garbage-collector          │   │   │ 1 │   │   │
+│                │ ClusterRole/cluster-admin                                    │ 2 │   │   │   │   │
+│                │ ClusterRole/system:aggregate-to-edit                         │ 2 │ 4 │ 6 │   │   │
+│                │ ClusterRole/cilium-operator                                  │   │   │ 1 │   │   │
+│                │ ClusterRole/system:controller:namespace-controller           │ 1 │   │   │   │   │
+│                │ ClusterRole/system:controller:horizontal-pod-autoscaler      │ 2 │   │   │   │   │
+│                │ ClusterRole/system:controller:job-controller                 │   │   │ 2 │   │   │
+│                │ ClusterRole/argocd-repo-server                               │ 2 │   │   │   │   │
+│                │ ClusterRole/admin                                            │ 3 │ 4 │ 6 │   │   │
+│                │ ClusterRole/system:controller:node-controller                │   │   │ 1 │   │   │
+│                │ ClusterRoleBinding/cluster-admin                             │   │   │ 1 │   │   │
+│                │ ClusterRole/edit                                             │ 2 │ 4 │ 6 │   │   │
+│                │ ClusterRole/argocd-application-controller                    │ 2 │   │   │   │   │
+│                │ ClusterRole/hubble-ui                                        │ 1 │   │   │   │   │
+│                │ ClusterRoleBinding/helm-kube-system-rke2-metrics-server      │   │   │ 1 │   │   │
+│                │ ClusterRoleBinding/longhorn-support-bundle                   │   │   │ 1 │   │   │
+│                │ ClusterRole/system:controller:endpointslicemirroring-contro- │   │ 1 │   │   │   │
+│                │ ller                                                         │   │   │   │   │   │
+│                │ ClusterRole/system:controller:persistent-volume-binder       │ 1 │ 2 │ 1 │   │   │
+│                │ ClusterRole/longhorn-role                                    │ 7 │ 1 │ 5 │   │   │
+│                │ ClusterRole/prometheus-kube-stack-kube-operator              │ 3 │ 1 │ 3 │   │   │
+│                │ ClusterRole/prometheus-kube-stack-kube-state-metrics         │ 1 │   │   │   │   │
+│                │ ClusterRole/system:controller:deployment-controller          │   │   │ 3 │   │   │
+│                │ ClusterRoleBinding/helm-kube-system-rke2-coredns             │   │   │ 1 │   │   │
+│                │ ClusterRole/system:controller:ttl-after-finished-controller  │   │   │ 1 │   │   │
+│                │ ClusterRole/system:controller:root-ca-cert-publisher         │   │   │ 1 │   │   │
+│                │ ClusterRole/rke2-ingress-nginx                               │ 1 │   │   │   │   │
+│                │ ClusterRole/system:controller:expand-controller              │ 1 │   │   │   │   │
+│                │ ClusterRoleBinding/cluster-reconciler-flux-system            │   │   │ 1 │   │   │
+│                │ ClusterRole/system:controller:legacy-service-account-token-- │ 1 │   │   │   │   │
+│                │ cleaner                                                      │   │   │   │   │   │
+│                │ ClusterRoleBinding/helm-kube-system-rke2-ingress-nginx       │   │   │ 1 │   │   │
+└────────────────┴──────────────────────────────────────────────────────────────┴───┴───┴───┴───┴───┘
+Severities: C=CRITICAL H=HIGH M=MEDIUM L=LOW U=UNKNOWN
+
+
+Infra Assessment
+┌─────────────┬────────────────────────────────────────────────────┬─────────────────────────────┐
+│  Namespace  │                      Resource                      │ Kubernetes Infra Assessment │
+│             │                                                    ├────┬────┬────┬─────┬────────┤
+│             │                                                    │ C  │ H  │ M  │ L   │   U    │
+├─────────────┼────────────────────────────────────────────────────┼────┼────┼────┼─────┼────────┤
+│ kube-system │ Pod/etcd-c1cp1.smigula.internal                    │    │    │    │ 4   │        │
+│ kube-system │ Pod/kube-apiserver-c1cp1.smigula.internal          │    │    │ 1  │ 16  │        │
+│ kube-system │ Pod/kube-controller-manager-c1cp1.smigula.internal │    │    │    │ 7   │        │
+│ kube-system │ Pod/kube-scheduler-c1cp1.smigula.internal          │    │    │    │ 2   │        │
+│             │ NodeInfo/c1cp1.smigula.internal                    │    │ 1  │    │     │        │
+│             │ NodeInfo/c1w1.smigula.internal                     │    │ 1  │    │     │        │
+└─────────────┴────────────────────────────────────────────────────┴────┴────┴────┴─────┴────────┘
+Severities: C=CRITICAL H=HIGH M=MEDIUM L=LOW U=UNKNOWN
+

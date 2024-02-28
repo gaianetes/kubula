@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: arcadedb
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "arcadedb.labels" . | nindent 4 }}
+spec:
+  serviceName: arcadedb
+  podManagementPolicy: "OrderedReady"
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "arcadedb.selectorLabels" . | nindent 6}}
+  template:
+    metadata:
+      labels:
+        {{- include "arcadedb.selectorLabels" . | nindent 8}}
+    spec:
+    {{- if not .Values.persistence.enabled }}
+      volumes:
+        - name: datadir
+          emptyDir: {}
+    {{- end }}
+      affinity:
+        # Set the anti-affinity selector scope to arcadedb servers.
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/instance
+                      operator: In
+                      values:
+                        - {{ .Release.Name }}
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: arcadedb
+        {{- with .Values.image }}
+          image: {{ .registry }}/{{ .repository }}:{{ .tag }}
+          imagePullPolicy: {{ .pullPolicy }}
+        {{- end }}
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: rootPassword
+              valueFrom:
+                secretKeyRef:
+                  key: rootPassword
+                  name: arcadedb-credentials
+                  optional: false
+          command:
+            - "bin/server.sh"
+            - "-Darcadedb.dumpConfigAtStartup=true"
+            - "-Darcadedb.server.name=${HOSTNAME}"
+            - "-Darcadedb.server.rootPassword=${rootPassword}"
+            - "-Darcadedb.server.databaseDirectory=/mnt/data0/databases"
+            - "-Darcadedb.server.defaultDatabases=Universe[elon:musk]"
+            - "-Darcadedb.ha.enabled=true"
+            - "-Darcadedb.ha.replicationIncomingHost=0.0.0.0"
+            - "-Darcadedb.ha.serverList=arcadedb-0.arcadedb.{{ .Release.Namespace }}.svc.cluster.local:2424"
+            - "-Darcadedb.ha.k8s=true"
+            - "-Darcadedb.ha.k8sSuffix=.arcadedb.{{ .Release.Namespace }}.svc.cluster.local"
+          {{- with .Values.resources }}
+          resources:
+            {{- if .limits }}
+            limits:
+              {{ .limits | toYaml | nindent 14 }}
+            {{- end }}
+            {{- if .requests }}
+            requests:
+              {{- .requests | toYaml | nindent 14 }}
+            {{- end }}
+          {{- end }}
+          ports:
+          {{- range $v := .Values.ports }}
+            - containerPort: {{ $v.containerPort }}
+              name: {{ $v.name }}
+          {{- end }}
+          # These volume mounts are persistent. They are like inline claims,
+          # but not exactly because the names need to match exactly one of
+          # the stateful pod volumes.
+          volumeMounts:
+            - name: datadir
+              mountPath: /mnt/data0
+  updateStrategy:
+    type: "{{ .Values.updateStrategy }}"
+  # These are converted to volume claims by the controller
+  # and mounted at the paths mentioned above.
+  # do not use these in production until ssd GCEPersistentDisk or other ssd pd
+  {{- with .Values.persistence }}
+  {{- if .enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: datadir
+      spec:
+        accessModes:
+        {{- .accessModes | toYaml | nindent 8 }}
+        resources:
+          requests:
+            storage: {{ .capacity }}
+  {{- end }}
+  {{- end }}

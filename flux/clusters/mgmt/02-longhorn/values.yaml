@@ -1,0 +1,6 @@
+networkPolicies:
+  enabled: false
+  # Available types: k3s, rke2, rke1
+  type: "rke2"
+defaultSettings:
+  defaultDataPath: /mnt/storage

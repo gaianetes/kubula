@@ -18,8 +18,8 @@ spec:
               namespace: monitoring
             - appName: promtail
               namespace: monitoring
-            - appName: tracee
-              namespace: monitoring
+            # - appName: tracee
+            #   namespace: monitoring
   template:
     metadata:
       name: "{{appName}}"
