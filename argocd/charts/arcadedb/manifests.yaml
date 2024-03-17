@@ -1,0 +1,134 @@
+---
+# Source: arcadedb/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: arcadedb
+  labels:
+    helm.sh/chart: arcadedb-0.1.0
+    app.kubernetes.io/name: arcadedb
+    app.kubernetes.io/instance: arcadedb
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: arcadedb/templates/secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: arcadedb-credentials
+  namespace: kube-system
+type: Opaque
+data:
+  rootPassword: "U3VwZXJTZWNyZXQx"
+---
+# Source: arcadedb/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: arcadedb
+  namespace: kube-system
+  labels:
+    helm.sh/chart: arcadedb-0.1.0
+    app.kubernetes.io/name: arcadedb
+    app.kubernetes.io/instance: arcadedb
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 2480
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: arcadedb
+    app.kubernetes.io/instance: arcadedb
+---
+# Source: arcadedb/templates/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: arcadedb
+  namespace: kube-system
+  labels:
+    helm.sh/chart: arcadedb-0.1.0
+    app.kubernetes.io/name: arcadedb
+    app.kubernetes.io/instance: arcadedb
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  serviceName: arcadedb
+  podManagementPolicy: "OrderedReady"
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: arcadedb
+      app.kubernetes.io/instance: arcadedb
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: arcadedb
+        app.kubernetes.io/instance: arcadedb
+    spec:
+      volumes:
+        - name: datadir
+          emptyDir: {}
+      affinity:
+        # Set the anti-affinity selector scope to arcadedb servers.
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/instance
+                      operator: In
+                      values:
+                        - arcadedb
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: arcadedb
+          image: docker.io/arcadedata/arcadedb:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: rootPassword
+              valueFrom:
+                secretKeyRef:
+                  key: rootPassword
+                  name: arcadedb-credentials
+                  optional: false
+          command:
+            - "bin/server.sh"
+            - "-Darcadedb.dumpConfigAtStartup=true"
+            - "-Darcadedb.server.name=${HOSTNAME}"
+            - "-Darcadedb.server.rootPassword=${rootPassword}"
+            - "-Darcadedb.server.databaseDirectory=/mnt/data0/databases"
+            - "-Darcadedb.ha.enabled=true"
+            - "-Darcadedb.ha.replicationIncomingHost=0.0.0.0"
+            - "-Darcadedb.ha.serverList=arcadedb-0.arcadedb.kube-system.svc.cluster.local:2424"
+            - "-Darcadedb.ha.k8s=true"
+            - "-Darcadedb.ha.k8sSuffix=.arcadedb.kube-system.svc.cluster.local"
+            - -Darcadedb.server.defaultDatabases=Imported[root]{import:https://github.com/ArcadeData/arcadedb-datasets/raw/main/orientdb/OpenBeer.gz}
+          resources:
+            requests:
+              memory: 512Mi
+          ports:
+            - containerPort: 2480
+              name: http
+            - containerPort: 2424
+              name: rpc
+          # These volume mounts are persistent. They are like inline claims,
+          # but not exactly because the names need to match exactly one of
+          # the stateful pod volumes.
+          volumeMounts:
+            - name: datadir
+              mountPath: /mnt/data0
+  updateStrategy:
+    type: "RollingUpdate"
+  # These are converted to volume claims by the controller
+  # and mounted at the paths mentioned above.
+  # do not use these in production until ssd GCEPersistentDisk or other ssd pd
