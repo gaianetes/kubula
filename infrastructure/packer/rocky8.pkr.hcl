@@ -57,21 +57,28 @@ variable "vm_name" {
 }
 
 source "virtualbox-iso" "rocky" {
-  boot_command     = ["<tab><bs><bs><bs><bs><bs>text ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ks.cfg<enter><wait>"]
-  boot_wait        = "${var.boot_wait}"
-  disk_size        = "${var.disk_size}"
-  guest_os_type    = "RedHat_64"
-  headless         = false
-  http_directory   = "http"
-  iso_checksum     = "${var.iso_checksum}"
-  iso_url          = "${var.iso_url}"
-  shutdown_command = "echo 'packer'|sudo -S /sbin/halt -h -p"
-  ssh_password     = "${var.ssh_password}"
-  ssh_port         = 22
-  ssh_timeout      = "30m"
-  ssh_username     = "${var.ssh_username}"
-  vboxmanage       = [["modifyvm", "{{ .Name }}", "--memory", "${var.memsize}"], ["modifyvm", "{{ .Name }}", "--cpus", "${var.numvcpus}"]]
-  vm_name          = "${var.vm_name}"
+  boot_command   = ["<tab><bs><bs><bs><bs><bs>text ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ks.cfg<enter><wait>"]
+  boot_wait      = "${var.boot_wait}"
+  disk_size      = "${var.disk_size}"
+  guest_os_type  = "RedHat_64"
+  headless       = false
+  http_directory = "./http"
+  # http_content = {
+  #   "ks.cfg" = file("http/ks.cfg")
+  # }
+  iso_checksum         = "${var.iso_checksum}"
+  iso_url              = "${var.iso_url}"
+  shutdown_command     = "echo 'packer'|sudo -S /sbin/halt -h -p"
+  ssh_password         = "${var.ssh_password}"
+  ssh_port             = 22
+  ssh_timeout          = "30m"
+  ssh_username         = "${var.ssh_username}"
+  vboxmanage           = [
+    ["modifyvm", "{{ .Name }}", "--memory", "${var.memsize}"],
+    ["modifyvm", "{{ .Name }}", "--cpus", "${var.numvcpus}"],
+    ["modifyvm", "{{ .Name }}", "--nat-localhostreachable1", "on"]
+  ]
+  vm_name              = "${var.vm_name}"
 }
 
 build {
@@ -82,9 +89,9 @@ build {
     inline          = ["dnf -y update", "dnf -y install python3", "alternatives --set python /usr/bin/python3", "python3 -m pip install -U pip", "pip3 install ansible"]
   }
 
-  provisioner "ansible-local" {
-    playbook_file = "scripts/setup.yml"
-  }
+  #  provisioner "ansible-local" {
+  #    playbook_file = "scripts/setup.yml"
+  #  }
 
   provisioner "shell" {
     execute_command = "echo 'packer'|{{ .Vars }} sudo -S -E bash '{{ .Path }}'"
