@@ -1,0 +1,15 @@
+---
+
+- name: Enable iscsi_tcp
+  community.general.sysctl:
+    name: iscsi_tcp
+    value: 1
+    state: present
+    sysctl_set: yes
+    reload: no
+  become: true
+- name: Load iscsi_tcp module
+  community.general.modprobe:
+    name: iscsi_tcp
+    state: present
+  become: true
