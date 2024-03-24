@@ -1,0 +1,27 @@
+---
+
+- name: Create the rke2 directory
+  file:
+    path: /etc/rancher/rke2
+    state: directory
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Create the rke2 server directory
+  file:
+    path: /var/lib/rancher/rke2/server
+    state: directory
+    owner: root
+    group: root
+    mode: 0644
+  when: rke2_role == "server"
+
+- name: Create the rke2 agent directory
+  file:
+    path: /var/lib/rancher/rke2/agent
+    state: directory
+    owner: root
+    group: root
+    mode: 0644
+  when: rke2_role == "agent"

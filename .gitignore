@@ -27,3 +27,4 @@ crash.log
 *.vmsd
 *.vmss
 *.nvram
+*.pkvars.hcl

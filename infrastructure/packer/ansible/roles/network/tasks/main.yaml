@@ -1,0 +1,119 @@
+---
+
+- name: Configuring system networking
+  block:
+  - name: Load br_netfilter module
+    community.general.modprobe:
+      name: br_netfilter
+      state: present
+    
+  - name: Load overlay module
+    community.general.modprobe:
+      name: overlay
+      state: present
+
+  - name: Enable br_netfilter module
+    community.general.sysctl:
+      name: net.bridge.bridge-nf-call-iptables
+      value: 1
+      state: present
+      sysctl_set: yes
+      reload: no
+
+  - name: Enable bridge netfilter for IPv6
+    community.general.sysctl:
+      name: net.bridge.bridge-nf-call-ip6tables
+      value: 1
+      state: present
+      sysctl_set: yes
+      reload: no
+
+  - name: Enalbe bridge netfilter for IPv4
+    community.general.sysctl:
+      name: net.bridge.bridge-nf-call-iptables
+      value: 1
+      state: present
+      sysctl_set: yes
+      reload: no
+
+  - name: Enable ip forwarding
+    community.general.sysctl:
+      name: net.ipv4.ip_forward
+      value: 1
+      state: present
+      sysctl_set: yes
+      reload: yes
+  become: true
+
+- name: Configuring firewall
+  block:
+  - name: Allow TCP ports
+    community.general.firewalld:
+      port: "{{ item }}"
+      protocol: tcp
+      state: enabled
+      permanent: yes
+    with_items: "{{ allowed_tcp_ports }}"
+    become: true
+  - name: Allow UDP ports
+    community.general.firewalld:
+      port: "{{ item }}"
+      protocol: udp
+      state: enabled
+      permanent: yes
+    with_items: "{{ allowed_usp_ports }}"
+    become: true
+  - name: Reload firewalld
+    community.general.firewalld:
+      state: reloaded
+    become: true
+  - name: Enable masquerade
+    community.general.firewalld:
+      masquerade: yes
+      state: enabled
+      permanent: yes
+    become: true
+
+- name: Configure NetworkManager
+  block:
+  - name: Create /etc/NetworkManager/conf.d/rke2-canal.conf
+    copy:
+      content: |
+        [keyfile]
+        unmanaged-devices=interface-name:cali*;interface-name:tunl*
+      dest: /etc/NetworkManager/conf.d/rke2-canal.conf
+      owner: root
+      group: root
+      mode: 0644
+    become: true
+  - name: Restart NetworkManager
+    service:
+      name: NetworkManager
+      state: restarted
+    become: true
+  become: true
+
+- name: Set static IP address
+  block:
+  - name: Create /etc/sysconfig/network-scripts/ifcfg-eth0
+    copy:
+      content: |
+        DEVICE=eth0
+        BOOTPROTO=static
+        ONBOOT=yes
+        IPADDR={{ static_ip }}
+        NETMASK={{ static_netmask }}
+        GATEWAY={{ static_gateway }}
+        DNS1={{ static_dns1 }}
+        DNS2={{ static_dns2 }}
+      dest: /etc/sysconfig/network-scripts/ifcfg-eth0
+      owner: root
+      group: root
+      mode: 0644
+    become: true
+  - name: Restart network
+    service:
+      name: network
+      state: restarted
+    become: true
+  become: true
