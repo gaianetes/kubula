@@ -66,8 +66,13 @@ variable "version" {
 }
 
 variable "vagrant_cloud_token" {
-  type = string
+  type      = string
   sensitive = true
+}
+
+variable "ansible_staging_directory" {
+  type    = string
+  default = "/tmp/ansible"
 }
 
 source "virtualbox-iso" "rocky" {
@@ -98,27 +103,36 @@ build {
 
   provisioner "shell" {
     execute_command = "echo 'packer'|{{ .Vars }} sudo -S -E bash '{{ .Path }}'"
-    inline          = ["dnf -y update", "dnf -y install python3", "alternatives --set python /usr/bin/python3", "python3 -m pip install -U pip", "pip3 install ansible"]
+    inline          = ["dnf -y update", "dnf -y install python39", "alternatives --set python /usr/bin/python39", "python39 -m pip install -U pip", "pip3 install ansible"]
+  }
+
+  provisioner "shell" {
+    inline = ["mkdir -p /tmp/ansible"]
+  }
+
+  provisioner "file" {
+    source      = "./ansible/"
+    destination = "/tmp/ansible"
+  }
+
+  provisioner "shell" {
+    inline = ["ansible-galaxy install -r /tmp/ansible/requirements.yml"]
   }
 
   provisioner "ansible-local" {
-    playbook_file = "ansible/main.yaml"
+    playbook_file     = "./ansible/main.yml"
+    staging_directory = "/tmp/ansible"
   }
-
-  # provisioner "shell" {
-  #   execute_command = "echo 'packer'|{{ .Vars }} sudo -S -E bash '{{ .Path }}'"
-  #   scripts         = ["scripts/setup.sh"]
-  # }
 
   post-processors {
     post-processor "vagrant" {
       output = "builds/{{ .Provider }}-rockylinux8.box"
     }
     post-processor "vagrant-cloud" {
-      box_tag = "mitchmurphy/rockylinux-rke2"
-      version = "${var.version}"
-      access_token = "${var.vagrant_cloud_token}"
-      keep_input_artifact = true
+      box_tag             = "mitchmurphy/rockylinux-rke2"
+      version             = "${var.version}"
+      access_token        = "${var.vagrant_cloud_token}"
+      # keep_input_artifact = true
     }
   }
 
