@@ -43,6 +43,7 @@ allowed_tcp_ports:
 - 9893 
 - 9962 
 - 9966
+- "30000-32767"
 allowed_udp_ports:
 - 8472 
 - 4789 

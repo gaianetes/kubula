@@ -1,0 +1,12 @@
+- name: Enable iscsid system service
+  ansible.builtin.systemd:
+    name: iscsid
+    enabled: true
+    state: started
+    daemon_reload: true
+  become: true
+- name: Load iscsi_tcp module
+  community.general.modprobe:
+    name: iscsi_tcp
+    state: present
+  become: true

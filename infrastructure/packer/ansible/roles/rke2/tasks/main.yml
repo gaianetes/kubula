@@ -1,5 +1,3 @@
----
-
 - name: Create the rke2 directory
   file:
     path: /etc/rancher/rke2

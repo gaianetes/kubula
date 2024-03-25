@@ -1,0 +1,11 @@
+- name: Extract zip file from URL
+  unarchive:
+    src: "https://github.com/cilium/cilium-cli/releases/download/{{ cilium_cli_version }}/cilium-linux-amd64.tar.gz"
+    dest: /tmp
+    remote_src: yes
+  become: true
+- name: Move Cilium CLI binary
+  ansible.builtin.copy:
+    src: /tmp/cilium
+    dest: /usr/local/bin
+  become: true
