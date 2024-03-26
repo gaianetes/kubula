@@ -1,13 +1,12 @@
+---
 - name: Load br_netfilter module
   community.general.modprobe:
     name: br_netfilter
     state: present
-  
 - name: Load overlay module
   community.general.modprobe:
     name: overlay
     state: present
-
 - name: Enable br_netfilter module
   ansible.posix.sysctl:
     name: net.bridge.bridge-nf-call-iptables
@@ -15,7 +14,6 @@
     state: present
     sysctl_set: true
     reload: false
-
 - name: Enable bridge netfilter for IPv6
   ansible.posix.sysctl:
     name: net.bridge.bridge-nf-call-ip6tables
@@ -23,7 +21,6 @@
     state: present
     sysctl_set: true
     reload: false
-
 - name: Enalbe bridge netfilter for IPv4
   ansible.posix.sysctl:
     name: net.bridge.bridge-nf-call-iptables
@@ -31,7 +28,6 @@
     state: present
     sysctl_set: true
     reload: false
-
 - name: Enable ip forwarding
   ansible.posix.sysctl:
     name: net.ipv4.ip_forward
@@ -40,90 +36,79 @@
     sysctl_set: true
     reload: true
   become: true
-
 - name: Allow TCP ports
   firewalld:
     port: "{{ item }}/tcp"
     state: enabled
     permanent: true
-  with_items: "{{ allowed_tcp_ports }}"
+  with_items: "{{ network_allowed_tcp_ports }}"
   become: true
-
 - name: Allow UDP ports
   firewalld:
     port: "{{ item }}/udp"
     state: enabled
     permanent: true
-  with_items: "{{ allowed_udp_ports }}"
+  with_items: "{{ network_allowed_udp_ports }}"
   become: true
-
 - name: Reload firewalld
-  service:
+  ansible.builtin.service:
     name: firewalld
     state: restarted
   become: true
-
 - name: Enable masquerade
   firewalld:
     masquerade: true
     state: enabled
     permanent: true
   become: true
-
 - name: Enable HTTP
   firewalld:
     service: http
-    permanent: yes
+    permanent: true
     state: enabled
-
 - name: Enable HTTPS
   firewalld:
     service: https
-    permanent: yes
+    permanent: true
     state: enabled
-
 - name: Remove ICMP Block for echo-request
   firewalld:
     icmp_block: "echo-request"
     state: disabled
-    permanent: yes
-
+    permanent: true
 - name: Remove ICMP Block for echo-reply
   firewalld:
     icmp_block: "echo-reply"
     state: disabled
-    permanent: yes
-
+    permanent: true
 - name: Create /etc/NetworkManager/conf.d/rke2-canal.conf
-  copy:
+  ansible.builtin.copy:
     content: |
       [keyfile]
       unmanaged-devices=interface-name:cali*;interface-name:tunl*
     dest: /etc/NetworkManager/conf.d/rke2-canal.conf
     owner: root
     group: root
-    mode: 0644
+    mode: "0644"
   become: true
-
 - name: Create /etc/sysconfig/network-scripts/ifcfg-eth0
-  copy:
+  ansible.builtin.copy:
     content: |
       DEVICE=eth0
       BOOTPROTO=static
       ONBOOT=yes
-      IPADDR={{ static_ip }}
-      PREFIX={{ static_prefix }}
-      GATEWAY={{ static_gateway }}
-      DNS1={{ static_dns1 }}
-      DNS2={{ static_dns2 }}
+      IPADDR={{ network_static_ip }}
+      PREFIX={{ network_static_prefix }}
+      GATEWAY={{ network_static_gateway }}
+      DNS1={{ network_static_dns1 }}
+      DNS2={{ network_static_dns2 }}
     dest: /etc/sysconfig/network-scripts/ifcfg-eth0
     owner: root
     group: root
-    mode: 0644
+    mode: "0644"
   become: true
-
 - name: Restart network
-  service:
+  ansible.builtin.service:
     name: NetworkManager
     state: restarted
   become: true

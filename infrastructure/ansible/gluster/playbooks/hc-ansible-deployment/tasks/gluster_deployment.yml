@@ -45,8 +45,8 @@
           - "disk_size.stdout|int > gluster_features_min_disk|default(15000)"
         fail_msg: "The size of /var should be greater than or equal to 15G"
       when: gluster_features_force_varlogsizecheck | default(true)
-      
-      
+     
+     
     - name: Check if block device is 512B
       shell: >
          blockdev --getss {{ item.pvname }} | grep -Po -q "512"  && echo true || echo false

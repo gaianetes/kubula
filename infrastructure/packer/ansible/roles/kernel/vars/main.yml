@@ -1,4 +1,11 @@
-elrepo_repo_url: "https://www.elrepo.org/elrepo-release-8.el8.elrepo.noarch.rpm"
-elrepo_repo_gpg_key_url: "/etc/pki/rpm-gpg/RPM-GPG-KEY-elrepo.org"
-elrepo_repofile_path: "/etc/yum.repos.d/elrepo.repo"
-elrepo_repo_disabled: false
+---
+kernel_elrepo_repo_url: "https://www.elrepo.org/elrepo-release-8.el8.elrepo.noarch.rpm"
+kernel_elrepo_repo_gpg_key_url: "https://www.elrepo.org/RPM-GPG-KEY-elrepo.org"
+kernel_elrepo_repo_disabled: false
+kernel_elrepo_packages:
+- kernel-ml
+- kernel-ml-core
+- kernel-ml-headers
+- kernel-ml-modules
+- kernel-ml-modules-extra
+kernel_enable_selinux_mode: "permissive"

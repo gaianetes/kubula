@@ -7,16 +7,16 @@
   tasks:
 
     - name: Stop Gluster volume(s)
-      ansible.builtin.expect: 
+      ansible.builtin.expect:
         command: gluster volume stop {{ item.volname }} force
-        responses: 
+        responses:
           (.*)Do you want to continue?(.*): "y"
       run_once: True
       with_items: "{{ gluster_features_hci_volumes }}"
       when: gluster_features_hci_volumes is defined
 
     - name: Delete Gluster volume(s)
-      ansible.builtin.expect: 
+      ansible.builtin.expect:
         command: gluster volume delete {{ item.volname }}
         responses:
           (.*)Do you want to continue?(.*): "y"
@@ -114,7 +114,7 @@
         content: ""
       with_items: "{{ blacklist_mpath_devices }}"
       when: blacklist_mpath_devices is defined
-    
+   
     - name: Wipe devices
       shell: wipefs -a /dev/{{ item }}
       register: shell_output
