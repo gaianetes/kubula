@@ -8,4 +8,5 @@ kernel_elrepo_packages:
 - kernel-ml-headers
 - kernel-ml-modules
 - kernel-ml-modules-extra
-kernel_enable_selinux_mode: "permissive"
+kernel_selinux_mode: "permissive"
+kernel_selinux_policy: "targeted"

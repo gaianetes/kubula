@@ -1,0 +1,58 @@
+def linked_clones?
+  Gem::Version.new(Vagrant::VERSION) >= Gem::Version.new('1.8.0')
+end
+
+Vagrant.configure('2') do |config|
+  config.ssh.forward_agent = true
+
+  if config.vm.respond_to? :box_check_update
+    config.vm.box_check_update = true
+  end
+
+  if config.vm.respond_to? :use_linked_clone
+    config.use_linked_clone = true
+  end
+
+  config.vm.provider :virtualbox do |vm, override|
+    vm.linked_clone = true if linked_clones?
+    vm.customize [ 'modifyvm', :id,
+      '--chipset', 'ich9',
+      '--rtcuseutc', 'on',
+      '--natdnsproxy1', 'on',
+      '--natdnshostresolver1', 'on',
+      '--nictype1', 'virtio',
+      '--uartmode1', 'file', '/dev/null'
+    ]
+    vm.customize ['guestproperty', 'set', :id,
+      '/VirtualBox/GuestAdd/VBoxService/--timesync-set-threshold', 5000
+    ]
+  end
+
+  %w(vmware_fusion vmware_workstation).each do |provider|
+    config.vm.provider provider do |vm, override|
+      vm.linked_clone = true if linked_clones?
+      vm.vmx['logging'] = 'FALSE'
+      vm.vmx['rtc.diffFromUTC'] = 0
+      vm.vmx['snapshot.disabled'] = 'TRUE'
+      vm.vmx['MemTrimRate'] = '0'
+      vm.vmx['MemAllowAutoScaleDown'] = 'FALSE'
+      vm.vmx['mainMem.backing'] = 'swap'
+      vm.vmx['mainMem.useNamedFile'] = 'FALSE'
+      vm.vmx['prefvmx.useRecommendedLockedMemSize'] = 'TRUE'
+      vm.vmx['prefvmx.minVmMemPct'] = '100'
+      vm.vmx['sched.mem.pshare.enable'] = 'FALSE'
+      vm.vmx['isolation.tools.unity.disable'] = 'TRUE'
+      vm.vmx['ethernet0.present'] = 'TRUE'
+      vm.vmx['ethernet0.virtualDev'] = 'vmxnet3'
+      vm.vmx['ethernet0.addressType'] = 'generated'
+      vm.vmx['ethernet0.wakeOnPcktRcv'] = 'FALSE'
+      vm.vmx['ethernet0.pcislotnumber'] = '33'
+      vm.vmx['floppy0.present'] = 'FALSE'
+      vm.vmx['scsi0.present'] = 'TRUE'
+      vm.vmx['scsi0.virtualDev'] = 'lsilogic'
+      vm.vmx['usb.present'] = 'TRUE'
+      vm.vmx['usb.generic.autoconnect'] = 'FALSE'
+      vm.vmx['sound.present'] = 'FALSE'
+    end
+  end
+end

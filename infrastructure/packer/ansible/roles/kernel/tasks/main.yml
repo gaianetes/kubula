@@ -15,5 +15,6 @@
   become: true
 - name: Disable selinux
   ansible.posix.selinux:
-    state: "{{ kernel_enable_selinux_mode }}"
+    state: "{{ kernel_selinux_mode }}"
+    policy: "{{ kernel_selinux_policy }}"
   become: true

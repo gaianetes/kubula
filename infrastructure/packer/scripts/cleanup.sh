@@ -29,5 +29,7 @@ done
 dd if=/dev/zero of=/EMPTY bs=1M
 rm -rf /EMPTY
 
+echo "Uninstalling Python"
+dnf remove python39 -y
 # Add `sync` so Packer doesn't quit too early, before the large file is deleted.
 # sync

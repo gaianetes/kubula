@@ -130,18 +130,25 @@ build {
   }
 
   provisioner "shell" {
-    inline = ["sudo chmod +x /tmp/scripts/cleanup.sh", "sudo sh -c /tmp/scripts/cleanup.sh"]
+    inline = [
+      "for file in $(ls /tmp/scripts;do sudo chmod +x /tmp/scripts/$file;done",
+      "sudo sh -c /tmp/scripts/sudoers.sh",
+      "sudo sh -c /tmp/scripts/minimize.sh",
+      "sudo sh -c /tmp/scripts/cleanup.sh"
+    ]
   }
 
   post-processors {
     post-processor "vagrant" {
       output = "builds/{{ .Provider }}-rockylinux8-${var.version}.box"
+      vagrantfile_template = "templates/Vagrantfile.template"
+      compression_level = 9
     }
     post-processor "vagrant-cloud" {
       box_tag             = "mitchmurphy/rockylinux-rke2"
       version             = "${var.version}"
       access_token        = "${var.vagrant_cloud_token}"
-      # keep_input_artifact = true
+      keep_input_artifact = false
     }
   }
 
