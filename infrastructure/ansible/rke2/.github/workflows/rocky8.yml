@@ -168,7 +168,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: us-gov-west-1
-          
+         
       - name: Run playbook again with added hosts
         run: |
           ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i inventory/rocky8/hosts.ini -u centos --verbose --private-key .key site.yml
@@ -197,4 +197,4 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: us-gov-west-1
-          
+         

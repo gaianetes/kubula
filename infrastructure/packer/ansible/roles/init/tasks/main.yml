@@ -1,26 +1,23 @@
-
+---
 - name: Colorize root shell prompt
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /root/.bashrc
-    line: 'export PS1="\[\033[38;5;11m\]\u\[$(tput sgr0)\]\[\033[38;5;15m\]@\h:\[$(tput sgr0)\]\[\033[38;5;6m\][\w]:\[$(tput sgr0)\]\[\033[38;5;15m\] \[$(tput sgr0)\]"'
+    line: 'export PS1="\[\033[38;5;11m\]\u\[$(tput sgr0)\]\[\033[38;5;15m\]@\h:\[$(tput sgr0)\]\[\033[38;5;6m\][\w]:\[$(tput sgr0)\]\[\033[38;5;15m\] \[$(tput sgr0)\]"' # noqa: yaml[line-length]
     state: present
-
 - name: Alias vi to vim
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /root/.bashrc
     line: "alias vi='vim'"
     state: present
-
 - name: Create vim configuration file
-  file:
+  ansible.builtin.file:
     path: /root/.vimrc
     state: touch
     owner: root
     group: root
-    mode: 0644
-
+    mode: "0644"
 - name: Configure vim
-  blockinfile:
+  ansible.builtin.blockinfile:
     path: /root/.vimrc
     block: |
       set nocompatible
@@ -30,58 +27,43 @@
       highlight Comment ctermfg=LightCyan
     marker: ""
     state: present
-
 - name: Disable GSSAPIAuthentication
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/ssh/sshd_config
     regexp: "^GSSAPIAuthentication"
     line: "GSSAPIAuthentication no"
     state: present
-
 - name: Update CA bundle (Rocky)
-  get_url:
+  ansible.builtin.get_url:
     url: https://curl.haxx.se/ca/cacert.pem
     dest: /etc/pki/tls/certs/ca-bundle.crt
-    force: yes
+    force: true
+    mode: "0644"
   when: ansible_distribution == "Rocky"
-
 - name: Install epel repo (Rocky)
-  dnf:
+  ansible.builtin.dnf:
     name: "epel-release"
     state: latest
   when: ansible_distribution == "Rocky"
-
 - name: Upgrade all packages (Rocky)
-  dnf:
+  ansible.builtin.dnf:
     name: "*"
     state: latest
   when: ansible_distribution == "Rocky"
-
 - name: Install packages (Rocky)
-  dnf:
-    name: 
-    - bash-completion
-    - curl
-    - git
-    - rsync
-    - screen
-    - tcpdump
-    - vim
-    - wget
-    - nano
-    - tmux 
-    - jq
-    - vim-common
-    - iscsi-initiator-utils
-    - unzip
-    - tar
-    - nfs-utils
-    state: latest      
+  ansible.builtin.dnf:
+    name: "{{ init_packages }}"
+    state: latest
   when: ansible_distribution == "Rocky"
-
 - name: Autoremove DNF packages
-  dnf:
+  ansible.builtin.dnf:
     autoremove: true
-
-- name: Clean up
-  shell: dnf clean all
+- name: Create rke2 user
+  ansible.builtin.user:
+    name: "{{ init_user_name }}"
+    uid: 1001
+    shell: /bin/bash
+    groups: wheel
+    append: true
+    create_home: true
+    password: "{{ init_user_password }}"

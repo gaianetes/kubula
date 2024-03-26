@@ -107,12 +107,17 @@ build {
   }
 
   provisioner "shell" {
-    inline = ["mkdir -p /tmp/ansible"]
+    inline = ["mkdir -p /tmp/ansible /tmp/scripts"]
   }
 
   provisioner "file" {
     source      = "./ansible/"
     destination = "/tmp/ansible"
+  }
+
+  provisioner "file" {
+    source      = "./scripts/"
+    destination = "/tmp/scripts"
   }
 
   provisioner "shell" {
@@ -124,9 +129,13 @@ build {
     staging_directory = "/tmp/ansible"
   }
 
+  provisioner "shell" {
+    inline = ["sudo chmod +x /tmp/scripts/cleanup.sh", "sudo sh -c /tmp/scripts/cleanup.sh"]
+  }
+
   post-processors {
     post-processor "vagrant" {
-      output = "builds/{{ .Provider }}-rockylinux8.box"
+      output = "builds/{{ .Provider }}-rockylinux8-${var.version}.box"
     }
     post-processor "vagrant-cloud" {
       box_tag             = "mitchmurphy/rockylinux-rke2"
