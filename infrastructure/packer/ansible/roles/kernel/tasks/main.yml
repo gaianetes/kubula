@@ -23,6 +23,11 @@
   ansible.builtin.dnf:
     name: "{{ kernel_extra_packages }}"
     state: "latest"
+# clean up old kernels
+- name: Remove old kernels
+  ansible.builtin.command:
+    cmd: "sudo dnf remove --oldinstallonly kernel -y"
+  become: true
 # get the latest kernel version
 - name: Get latest kernel version
   ansible.builtin.command:
