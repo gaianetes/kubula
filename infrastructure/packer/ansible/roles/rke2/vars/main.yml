@@ -1,3 +1,6 @@
 ---
 # server or agent?
 rke2_role: server
+rke2_version: v1.29.3+rke2r1
+rke2_images_url: https://github.com/rancher/rke2/releases/download/v1.29.3%2Brke2r1/rke2.linux-amd64.tar.gz
+rke2_artifacts_path: "/vagrant/dist/artifacts/"

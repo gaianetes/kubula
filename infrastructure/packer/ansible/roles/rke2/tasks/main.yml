@@ -1,5 +1,6 @@
 ---
 - name: Create the rke2 directory
+  become: true
   ansible.builtin.file:
     path: /etc/rancher/rke2
     state: directory
@@ -7,6 +8,7 @@
     group: root
     mode: "0644"
 - name: Create the rke2 server directory
+  become: true
   ansible.builtin.file:
     path: /var/lib/rancher/rke2/server
     state: directory
@@ -15,6 +17,7 @@
     mode: "0644"
   when: rke2_role == "server"
 - name: Create the rke2 agent directory
+  become: true
   ansible.builtin.file:
     path: /var/lib/rancher/rke2/agent
     state: directory
@@ -22,3 +25,16 @@
     group: root
     mode: "0644"
   when: rke2_role == "agent"
+- name: Create the RKE2 images directory
+  become: true
+  ansible.builtin.file:
+    path: /var/lib/rancher/rke2/agent/images
+    state: directory
+    owner: root
+    group: root
+    mode: "0644"
+- name: Download RKE2 Images tar
+  become: true
+  ansible.builtin.get_url:
+    url: "{{ rke2_images_url }}"
+    dest: /var/lib/rancher/rke2/agent/images

@@ -1,58 +1,162 @@
-def linked_clones?
-  Gem::Version.new(Vagrant::VERSION) >= Gem::Version.new('1.8.0')
-end
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
 
-Vagrant.configure('2') do |config|
-  config.ssh.forward_agent = true
+$set_environment_variables = <<SCRIPT
+tee "/etc/profile.d/myvars.sh" > "/dev/null" <<EOF
+# Global environment variables.
+export GO_VERSION=1.22.1
+export CRI_TOOLS_VERSION=v1.29.0
+export GOBIN=/usr/bin
+export GOPATH=/go
+export SELINUX=Permissive
+export SELINUX_POLICY_REPO="github.com/rancher/rke2-selinux"
+export SELINUX_POLICY_BRANCH="master"
+EOF
+SCRIPT
 
-  if config.vm.respond_to? :box_check_update
-    config.vm.box_check_update = true
+Vagrant.configure("2") do |config|
+  config.vm.box = "centos/7"
+  config.vm.provider :virtualbox do |v|
+    config.vm.box_url = "mitchmurphy/rockylinux-rke2"
+    config.vm.box_version = "0.1.2"
+    v.memory = 4096
+    v.cpus = 4
+    v.name = "rke2-controlplane-1"
   end
 
-  if config.vm.respond_to? :use_linked_clone
-    config.use_linked_clone = true
+  config.vm.hostname = "rke2-test"
+
+  # Set some global environment variables
+  config.vm.provisioner "set-vars", type: "shell", run: "always"
+
+  # Disabled by default. To run:
+  #   vagrant up --provision-with=upgrade-packages
+  # To upgrade only specific packages:
+  #   UPGRADE_PACKAGES=selinux vagrant up --provision-with=upgrade-packages
+  #
+  config.vm.provision "upgrade-packages", type: "shell", run: "never" do |sh|
+    sh.upload_path = "/tmp/vagrant-upgrade-packages"
+    sh.env = {
+        'UPGRADE_PACKAGES': ENV['UPGRADE_PACKAGES'],
+    }
+    sh.inline = <<~SHELL
+        #!/usr/bin/env bash
+        set -eux -o pipefail
+        yum -y upgrade ${UPGRADE_PACKAGES}
+    SHELL
   end
 
-  config.vm.provider :virtualbox do |vm, override|
-    vm.linked_clone = true if linked_clones?
-    vm.customize [ 'modifyvm', :id,
-      '--chipset', 'ich9',
-      '--rtcuseutc', 'on',
-      '--natdnsproxy1', 'on',
-      '--natdnshostresolver1', 'on',
-      '--nictype1', 'virtio',
-      '--uartmode1', 'file', '/dev/null'
-    ]
-    vm.customize ['guestproperty', 'set', :id,
-      '/VirtualBox/GuestAdd/VBoxService/--timesync-set-threshold', 5000
-    ]
+  # To re-run this provisioner, installing a different version of go:
+  #   GO_VERSION="1.22.1" vagrant up --provision-with=install-golang
+  #
+  config.vm.provision "install-golang", type: "shell", run: "never" do |sh|
+    sh.upload_path = "/tmp/vagrant-install-golang"
+    sh.inline = <<~SHELL
+        #!/usr/bin/env bash
+        set -eux -o pipefail
+        curl -fsSL "https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz" | tar Cxz /usr/lib
+        ln -fnsv /usr/lib/go/bin/{go,gofmt} /usr/bin
+    SHELL
   end
 
-  %w(vmware_fusion vmware_workstation).each do |provider|
-    config.vm.provider provider do |vm, override|
-      vm.linked_clone = true if linked_clones?
-      vm.vmx['logging'] = 'FALSE'
-      vm.vmx['rtc.diffFromUTC'] = 0
-      vm.vmx['snapshot.disabled'] = 'TRUE'
-      vm.vmx['MemTrimRate'] = '0'
-      vm.vmx['MemAllowAutoScaleDown'] = 'FALSE'
-      vm.vmx['mainMem.backing'] = 'swap'
-      vm.vmx['mainMem.useNamedFile'] = 'FALSE'
-      vm.vmx['prefvmx.useRecommendedLockedMemSize'] = 'TRUE'
-      vm.vmx['prefvmx.minVmMemPct'] = '100'
-      vm.vmx['sched.mem.pshare.enable'] = 'FALSE'
-      vm.vmx['isolation.tools.unity.disable'] = 'TRUE'
-      vm.vmx['ethernet0.present'] = 'TRUE'
-      vm.vmx['ethernet0.virtualDev'] = 'vmxnet3'
-      vm.vmx['ethernet0.addressType'] = 'generated'
-      vm.vmx['ethernet0.wakeOnPcktRcv'] = 'FALSE'
-      vm.vmx['ethernet0.pcislotnumber'] = '33'
-      vm.vmx['floppy0.present'] = 'FALSE'
-      vm.vmx['scsi0.present'] = 'TRUE'
-      vm.vmx['scsi0.virtualDev'] = 'lsilogic'
-      vm.vmx['usb.present'] = 'TRUE'
-      vm.vmx['usb.generic.autoconnect'] = 'FALSE'
-      vm.vmx['sound.present'] = 'FALSE'
-    end
+  config.vm.provision "install-cri-tools", type: "shell", run: "never" do |sh|
+    sh.upload_path = "/tmp/vagrant-install-cri-tools"
+    sh.inline = <<~SHELL
+        #!/usr/bin/env bash
+        source /etc/environment
+        source /etc/profile.d/sh.local
+        set -eux -o pipefail
+        go get -u github.com/onsi/ginkgo/v2
+        go get -d github.com/kubernetes-sigs/cri-tools/...
+        cd "$GOPATH"/src/github.com/kubernetes-sigs/cri-tools
+        git checkout $CRI_TOOLS_VERSION
+        make
+        sudo make BINDIR=$GOBIN install
+        cat << EOF | sudo tee /etc/crictl.yaml
+runtime-endpoint: unix:///run/k3s/containerd/containerd.sock
+EOF
+        type crictl critest ginkgo
+        critest --version
+    SHELL
   end
+
+  # SELinux is Enforcing by default.
+  # To set SELinux as Disabled on a VM that has already been provisioned:
+  #   SELINUX=Disabled vagrant up --provision-with=selinux
+  # To set SELinux as Permissive on a VM that has already been provisioned
+  #   SELINUX=Permissive vagrant up --provision-with=selinux
+  config.vm.provision "selinux", type: "shell", run: "once" do |sh|
+    sh.upload_path = "/tmp/vagrant-selinux"
+    sh.inline = <<~SHELL
+        #!/usr/bin/env bash
+        set -eux -o pipefail
+
+        if ! type -p getenforce setenforce &>/dev/null; then
+          echo SELinux is Disabled
+          exit 0
+        fi
+
+        case "${SELINUX}" in
+          Disabled)
+            if mountpoint -q /sys/fs/selinux; then
+              setenforce 0
+              umount -v /sys/fs/selinux
+            fi
+            ;;
+          Enforcing)
+            mountpoint -q /sys/fs/selinux || mount -o rw,relatime -t selinuxfs selinuxfs /sys/fs/selinux
+            setenforce 1
+            ;;
+          Permissive)
+            mountpoint -q /sys/fs/selinux || mount -o rw,relatime -t selinuxfs selinuxfs /sys/fs/selinux
+            setenforce 0
+            ;;
+          *)
+            echo "SELinux mode not supported: ${SELINUX}" >&2
+            exit 1
+            ;;
+        esac
+
+        echo SELinux is $(getenforce)
+    SHELL
+  end
+
+  config.vm.provision "install-rke2-policy", type: "shell", run: "never" do |sh|
+    sh.upload_path = "/tmp/vagrant-install-rke2-policy"
+    sh.inline = <<~SHELL
+        #!/usr/bin/env bash
+        set -eux -o pipefail
+        if [ ! -d /vagrant/rke2-policy ]; then
+            git clone https://${SELINUX_POLICY_REPO}.git /vagrant/rke2-policy
+        fi
+        pushd /vagrant/rke2-policy
+        git checkout ${SELINUX_POLICY_BRANCH}
+        make -f /usr/share/selinux/devel/Makefile rke2.pp
+        semodule -i rke2.pp
+    SHELL
+  end
+
+  config.vm.provision "install-rke2", type: "shell", run: "once" do |sh|
+    sh.upload_path = "/tmp/vagrant-install-rke2"
+    sh.inline = <<~SHELL
+        #!/usr/bin/env bash
+        set -eux -o pipefail
+        mkdir -vp /usr/local
+        if [ -e /vagrant/dist/artifacts/rke2.linux-amd64.tar.gz ]; then
+            tar xz -f /vagrant/dist/artifacts/rke2.linux-amd64.tar.gz -C /usr/local
+        fi
+
+        mkdir -vp /var/lib/rancher/rke2/agent/images
+        if [ -e /vagrant/build/images/rke2-airgap.tar ]; then
+            cp -vf /vagrant/build/images/rke2-airgap.tar /var/lib/rancher/rke2/agent/images/rke2.tar
+        elif [ -e /vagrant/dist/artifacts/rke2-images.linux-amd64.tar.gz ]; then
+            gzip -d < /vagrant/dist/artifacts/rke2-images.linux-amd64.tar.gz > /var/lib/rancher/rke2/agent/images/rke2.tar
+        fi
+        restorecon -r /var/lib/rancher/rke2 /usr/local || true
+        cat <<-EOF > /etc/profile.d/rke2.sh
+export KUBECONFIG=/etc/rancher/rke2/rke2.yaml PATH=/usr/local/bin:$PATH:/var/lib/rancher/rke2/bin
+EOF
+    SHELL
+  end
+
 end

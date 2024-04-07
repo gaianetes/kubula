@@ -4,7 +4,7 @@ set -e
 
 export PATH='/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin'
 
-source /var/tmp/helpers/default.sh
+source /tmp/helpers.sh
 
 # Make sure to shut the network interface down, thus close the
 # connections allowing for Packer to notice and reconnect.

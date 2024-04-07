@@ -4,7 +4,7 @@ set -e
 
 export PATH='/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin'
 
-source /var/tmp/helpers/default.sh
+source /tmp/scripts/helpers.sh
 
 readonly PROXMOX=$(detect_proxmox && echo 'true')
 
@@ -44,7 +44,7 @@ chmod 750 /etc/sudoers.d
 
 USERS=('root')
 if [[ -z $PROXMOX ]]; then
-    USERS+=('ubuntu')
+    USERS+=('rke2')
 fi
 
 for user in "${USERS[@]}"; do
@@ -65,4 +65,4 @@ chmod 440 /etc/securetty
 
 # Make sure to disallow access to "su" for everyone
 # other than a root user or a decidated group.
-dpkg-statoverride --update --add root sudo 4750 /bin/su
+# dpkg-statoverride --update --add root sudo 4750 /bin/su
