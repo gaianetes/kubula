@@ -1,0 +1,30 @@
+apiVersion: cstor.openebs.io/v1
+kind: CStorPoolCluster
+metadata:
+  name: cstor-disk-pool
+  namespace: openebs
+spec:
+  pools:
+  - nodeSelector:
+      kubernetes.io/hostname: "c1w1.smigula.internal"
+    dataRaidGroups:
+      - blockDevices:
+        - blockDeviceName: "blockdevice-ec200e2692eb93d004079c5341cd7c01"
+    poolConfig:
+      dataRaidGroupType: "stripe"
+  - nodeSelector:
+      kubernetes.io/hostname: "c1w2.smigula.internal"
+    dataRaidGroups:
+      - blockDevices:
+        - blockDeviceName: "blockdevice-2bf909cf4015d151f4e4a4d498846129"
+    poolConfig:
+      dataRaidGroupType: "stripe"
+
+  # Probably do not want any storage scheduled to controlplane(s)
+  #  - nodeSelector:
+  #      kubernetes.io/hostname: "c1cp1.smigula.internal"
+  #    dataRaidGroups:
+  #      - blockDevices:
+  #          - blockDeviceName: "blockdevice-ecc1eed984ab0d8557804d0613f9027c"
+  #    poolConfig:
+  #      dataRaidGroupType: "stripe"
