@@ -107,7 +107,7 @@ build {
   }
 
   provisioner "shell" {
-    inline = ["mkdir -p /tmp/ansible /tmp/scripts"]
+    inline = ["mkdir -p /tmp/ansible /tmp/scripts /tmp/rke2"]
   }
 
   provisioner "file" {
@@ -120,8 +120,22 @@ build {
     destination = "/tmp/scripts"
   }
 
+  provisioner "file" {
+    source      = "./rke2/"
+    destination = "/tmp/rke2"
+  }
+
   provisioner "shell" {
-    inline = ["ansible-galaxy install -r /tmp/ansible/requirements.yml"]
+    inline = [
+      "curl -O /tmp/rke2/tarbal_install https://github.com/rancher/rke2/releases/download/v1.29.3%2Brke2r1/rke2.linux-amd64.tar.gz"
+    ]
+  }
+
+  provisioner "shell" {
+    inline = [
+      "ansible-galaxy install -r /tmp/ansible/requirements.yml",
+      "ansible-galaxy install -r /tmp/rke2/requirements.yml"
+    ]
   }
 
   provisioner "ansible-local" {
@@ -131,7 +145,6 @@ build {
 
   provisioner "shell" {
     inline = [
-      "for file in $(ls /tmp/scripts;do sudo chmod +x /tmp/scripts/$file;done",
       "sudo sh -c /tmp/scripts/sudoers.sh",
       "sudo sh -c /tmp/scripts/minimize.sh",
       "sudo sh -c /tmp/scripts/cleanup.sh"
@@ -148,7 +161,7 @@ build {
       box_tag             = "mitchmurphy/rockylinux-rke2"
       version             = "${var.version}"
       access_token        = "${var.vagrant_cloud_token}"
-      keep_input_artifact = false
+      # keep_input_artifact = false # should proly use this for other provioners (eg. hyper-v)
     }
   }
 

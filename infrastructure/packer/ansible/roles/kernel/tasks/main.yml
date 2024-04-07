@@ -18,3 +18,19 @@
     state: "{{ kernel_selinux_mode }}"
     policy: "{{ kernel_selinux_policy }}"
   become: true
+# These packages must be installed after kernel headers are updated
+- name: Install extra packages
+  ansible.builtin.dnf:
+    name: "{{ kernel_extra_packages }}"
+    state: "latest"
+# get the latest kernel version
+- name: Get latest kernel version
+  ansible.builtin.command:
+    cmd: "rpm -q kernel-ml --qf '%{version}-%{release}.%{arch}\n' | sort -V | tail -n 1"
+  register: kernel_version
+# now set the default kernel
+- name: Set default kernel
+  ansible.builtin.command:
+    cmd: "grubby --set-default /boot/{{ kernel_version.stdout }}"
+  when: kernel_version.stdout is defined
+  become: true
