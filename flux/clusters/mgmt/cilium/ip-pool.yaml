@@ -1,0 +1,8 @@
+# IP pool, label seclector
+apiVersion: "cilium.io/v2alpha1"
+kind: CiliumLoadBalancerIPPool
+metadata:
+  name: "pool"
+spec:
+  cidrs:
+  - cidr: "192.168.1.128/25"

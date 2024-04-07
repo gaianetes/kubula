@@ -20,3 +20,4 @@ init_packages:
 - tar
 - nfs-utils
 - redhat-lsb-core.x86_64
+- frr

@@ -1,0 +1,81 @@
+cluster:
+  name: smig-cluster1
+  id: 11
+prometheus:
+  enabled: false
+  serviceMonitor:
+    enabled: true
+    namespace: monitoring
+    labels:
+      release: prometheus-stack
+dashboards:
+  enabled: true
+hubble:
+  metrics:
+    enabled:
+    - dns:query;ignoreAAAA
+    - drop
+    - tcp
+    - flow
+    - icmp
+    - http
+    dashboards:
+      enabled: true
+    serviceMonitor:
+      enabled: true
+      namespace: monitoring
+      labels:
+        release: prometheus-stack
+  relay:
+    enabled: true
+    prometheus:
+      enabled: true
+      serviceMonitor:
+        enabled: true
+        namespace: monitoring
+        labels:
+          release: prometheus-stack
+  ui:
+    enabled: true
+    baseUrl: "/"
+version: 1.15.1
+operator:
+  prometheus:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      namespace: monitoring
+      labels:
+        release: prometheus-stack
+  dashboards:
+    enabled: true
+envoy:
+  prometheus:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      namespace: monitoring
+      labels:
+        release: prometheus-stack
+clustermesh:
+  apiserver:
+    metrics:
+      enabled: false
+      serviceMonitor:
+        enabled: true
+        namespace: monitoring
+        labels:
+          release: prometheus-stack
+l2announcements:
+  enabled: true
+kubeProxyReplacement: true
+externalIPs:
+  enabled: true
+ipam:
+  mode: kubernetes
+socketLB:
+  hostNamespaceOnly: true
+bgpControlPlane:
+  enabled: true
+k8s:
+  requireIPv4PodCIDR: true
