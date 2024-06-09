@@ -1,11 +1,13 @@
-# /var/lib/rancher/rke2/server/manifests/rke2-cilium-config.yaml
----
 apiVersion: helm.cattle.io/v1
-kind: HelmChartConfig
+kind: HelmChart
 metadata:
   name: rke2-cilium
   namespace: kube-system
 spec:
+  chart: https://github.com/cilium/charts/blob/master/cilium-1.15.5.tgz
+  # chart: cilium/cilium
+  # repo: https://helm.cilium.io/
+  # version: 1.15.5
   valuesContent: |-
     cluster:
       name: smig-cluster1
