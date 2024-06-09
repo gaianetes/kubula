@@ -1,7 +1,22 @@
+require 'yaml'
+
 ENV['VAGRANT_I_KNOW_WHAT_IM_DOING_PLEASE_BE_QUIET'] = 'true'
 ENV['VAGRANT_NO_PARALLEL'] = 'no'
 
-Vagrant.require_version ">= 2.2.17"
+# Load the YAML configuration file
+config = YAML.load_file('config.yaml')
+# Define default values
+defaults = {
+  'vagrant' => {
+    'min_version' => '2.2.17',
+    'cpus' => 2,
+    'memory' => 4096
+  },
+}
+# Merge the loaded configuration with the defaults
+config = defaults.merge(config)
+
+Vagrant.require_version ">= #{config['vagrant']['min_version']}"
 
 Vagrant.configure("2") do |config|
   # For user example 
@@ -10,13 +25,13 @@ Vagrant.configure("2") do |config|
   config.vagrant.plugins = ["vagrant-reload"]
 
   config.vm.provider "libvirt" do |v|
-    v.cpus = 2         
-    v.memory = 4096
+    v.cpus = config['vagrant']['cpus']      
+    v.memory = config['vagrant']['memory']
   end
 
   config.vm.provider "virtualbox" do |v|
-    v.cpus = 2         
-    v.memory = 4096
+    v.cpus = config['vagrant']['cpus']
+    v.memory = config['vagrant']['memory']
     v.linked_clone = true
   end
 
