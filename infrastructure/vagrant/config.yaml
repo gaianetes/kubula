@@ -1,0 +1,22 @@
+server:
+  count: 1
+  ip: 10.10.0.10
+  memory: 2048
+  cpus: 2
+workers:
+  count: 3
+  base_ip: 10.10.1
+  memory: 4192
+  cpus: 4
+rke2:
+  version: v1.30.0+rke2r1
+  channel: latest
+  token: e2f8e040d9701df33d5dca8dacf8012d
+vagrant:
+  min_version: 2.2.17
+  box: generic/rocky8
+  cpus: 2
+  memory: 4192
+network:
+  type: host
+  netmask: 255.255.255.0
