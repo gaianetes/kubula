@@ -1,23 +1,50 @@
 require 'yaml'
+require 'ipaddr'
+
+puts "=================="
+puts "This script will create a Vagrantfile for a RKE2 cluster"
+puts "=================="
+
+if File.exists?(File.join(File.dirname(__FILE__), "config.yaml")) then
+  puts "Using configuration from config.yaml"
+  x = YAML.load_file(File.join(File.dirname(__FILE__), 'config.yaml'))
+else
+  puts "Using default configurations"
+  x = {
+    'vagrant' => {
+      'min_version' => '2.2.17',
+      'cpus' => 2,
+      'memory' => 4096,
+      'box' => 'generic/rocky8',
+    },
+    'server' => {
+      'count' => 1,
+      'cpus' => 2,
+      'memory' => 4096,
+    },
+    'worker' => {
+      'count' => 2,
+      'cpus' => 4,
+      'memory' => 8192,
+    },
+    'network' => {
+      'type' => 'private_network',
+      'base_ip' => '10.42.0',
+      'netmask' => '255.255.255.0',
+      'cni' => 'calico',
+      'private_nic_type' => '82545EM',
+    },
+  }
+end
+puts "Config: #{x.inspect}\n\n"
+
 
 ENV['VAGRANT_I_KNOW_WHAT_IM_DOING_PLEASE_BE_QUIET'] = 'true'
 ENV['VAGRANT_NO_PARALLEL'] = 'no'
 
-# Load the YAML configuration file
-config_data = YAML.load_file('config.yaml')
-# Define default values
-defaults = {
-  'vagrant' => {
-    'min_version' => '2.2.17',
-    'cpus' => 2,
-    'memory' => 4096,
-    'box' => 'generic/rocky8',
-  },
-}
-# Merge the loaded configuration with the defaults
-c = defaults.merge(config_data)
+Vagrant.require_version ">= 2.2.17"
 
-Vagrant.require_version ">= #{c['vagrant']['min_version']}"
+$private_nic_type = x.fetch('network').fetch('private_nic_type')
 
 Vagrant.configure("2") do |config|
   # For user example 
@@ -26,33 +53,102 @@ Vagrant.configure("2") do |config|
   config.vagrant.plugins = ["vagrant-reload"]
 
   config.vm.provider "libvirt" do |v|
-    v.cpus = c['vagrant']['cpus']
-    v.memory = c['vagrant']['memory']
+    v.cpus = x.fetch('vagrant').fetch('cpus')
+    v.memory = x.fetch('vagrant').fetch('memory')
   end
 
   config.vm.provider "virtualbox" do |v|
-    v.cpus = c['vagrant']['cpus']
-    v.memory = c['vagrant']['memory']
+    v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+    v.cpus = x.fetch('vagrant').fetch('cpus')        
+    v.memory = x.fetch('vagrant').fetch('memory')
     v.linked_clone = true
   end
+
+  server_ip = "#{x['network']['base_ip']}.2"
   # define number of workers
-  workers = c.fetch('workers.count', 1)
+  workers = x.fetch('workers').fetch('count')
+  token = x.fetch('rke2').fetch('token')
+
   # define number of servers
   # if we want to make this a HA cluster, we can set this to 3 and use something like HAProxy
-  servers = c.fetch('servers.count', 1)
-  box = c.fetch('vagrant.box', 'generic/rocky8')
-  server_ip = c.fetch('server.ip', '10.10.0.10')
-  worker_base_ip = c.fetch('workers.base_ip', '10.10.1')
-  net_mask = c.fetch('network.mask', '255.255.255.0')
-  channel = c.fetch('rke2.channel', 'latest')
-  rke2_version = c.fetch('rke2.version', 'v1.30.0+rke2r1')
+  servers = x.fetch('server').fetch('count')
 
   config.vm.define "server" do |server|
-    server.vm.box = box
+    server.vm.box = x.fetch('vagrant').fetch('box')
     server.vm.hostname = 'server'
-    server.vm.network "private_network", ip: server_ip, netmask: net_mask
+    server.vm.network x.fetch('network').fetch('type'), ip: server_ip, netmask: x.fetch('network').fetch('netmask'), nic_type: $private_nic_type
     # generic/ubuntu2004 suffers from poor default dns servers, creates problems with hitting github.com immediately
-    # server.vm.provision "Set DNS", type: "shell", inline: "systemd-resolve --set-dns=8.8.8.8 --interface=eth0"
+    server.vm.provision "Set DNS", type: "shell", inline: <<~SHELL
+      # get system connection name from nmcli
+      conn=$(nmcli -t -f NAME c show --active | head -n1)
+      sudo nmcli con mod "${conn}" ipv4.dns "8.8.8.8 8.8.4.4"
+    SHELL
+    # perform network prequisites for eBPF
+    server.vm.provision "Network Prerequisites", type: "shell", inline: <<~SHELL
+      sudo modprobe overlay
+      sudo modprobe br_netfilter
+      sudo sysctl -w net.ipv4.ip_forward=1
+      sudo sysctl -w net.ipv4.conf.all.accept_redirects=0
+      sudo sysctl -w net.ipv4.conf.default.accept_redirects=0
+      # disable ipv6
+      sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
+      sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
+      sudo su -
+      cat <<-EOF | sudo tee /etc/modules-load.d/kubernetes.conf
+      overlay
+      br_netfilter
+EOF
+    cat <<-EOF | sudo tee /etc/sysctl.d/kubernetes.conf
+      net.bridge.bridge-nf-call-ip6tables = 1
+      net.bridge.bridge-nf-call-iptables = 1
+      net.ipv4.ip_forward = 1
+EOF
+    sysctl --system
+    exit
+    SHELL
+    # Kernel configuration for Cilium
+    server.vm.provision "Kernel Configuration", type: "shell", inline: <<~SHELL
+      sudo dnf -y upgrade --refresh
+      sudo rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
+      sudo dnf install https://www.elrepo.org/elrepo-release-8.el8.elrepo.noarch.rpm -y
+      sudo dnf --enablerepo=elrepo-kernel install -y kernel-ml kernel-ml-core kernel-ml-headers kernel-ml-modules kernel-ml-modules-extra
+    SHELL
+    # selinux configuration
+    server.vm.provision "SELinux Configuration", type: "shell", inline: <<~SHELL
+      sudo dnf install -y container-selinux
+      sudo setenforce 0
+      sudo sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
+    SHELL
+
+    # firewall configuration
+    server.vm.provision "Firewall Configuration", type: "shell", inline: <<~SHELL
+    ALLOWED_PORTS=( 6443 9100 8080 4245 9345 6443 6444 10250 10259 10257 2379 2380 9796 19090 9090 6942 9091 4244 4240 80 443 9963 9964 8081 8082 7000 9001 6379 9121 8084 6060 6061 6062 9879 9890 9891 9892 9893 9962 9966 ) 
+    for i in "${ALLOWED_PORTS[@]}"
+    do
+      sudo firewall-cmd --add-port=$i/tcp --permanent
+    done
+
+    sudo firewall-cmd --add-port=30000-32767/tcp --permanent
+    sudo firewall-cmd --remove-icmp-block=echo-request --permanent
+    sudo firewall-cmd --remove-icmp-block=echo-reply --permanent
+    # Since we are using Cilium with GENEVE as overlay, we need the following port too:
+    # UDP
+    UDP_PORTS=( 8472 4789 6081 51871 53 55355 58467 41637 39291 38519 46190 )
+    for i in "${UDP_PORTS[@]}"
+    do
+      sudo firewall-cmd --add-port=$i/udp --permanent
+    done
+    sudo firewall-cmd --reload
+    ### Ingress Controller specific ports
+
+    ### To get DNS resolution working, simply enable Masquerading.
+    sudo firewall-cmd --zone=public  --add-masquerade --permanent
+
+    sudo firewall-cmd --zone=trusted --permanent --add-source=192.168.0.0/16
+
+    ### Finally apply all the firewall changes
+    sudo firewall-cmd --reload
+    SHELL
     server.vm.provision "Create Server Manifests Directory", type: "shell", inline: "sudo mkdir -p /var/lib/rancher/rke2/server/manifests"
     # echo out the current user
     server.vm.provision "Echo Current User", type: "shell", inline: "echo $USER"
@@ -60,47 +156,57 @@ Vagrant.configure("2") do |config|
     server.vm.provision "Upload Cilium Config", type: "file", source: "./files/rke2-cilium-helm-config.yaml", destination: "/tmp/rke2-cilium-helm-config.yaml"
     # copy file to /var/lib/rancher/rke2/server/manifests/rke2-cilium-helm-config.yaml
     # server.vm.provision "Copy Cilium Config", type: "shell", inline: "sudo cp /tmp/rke2-cilium-helm-config.yaml /var/lib/rancher/rke2/server/manifests/rke2-cilium-helm-config.yaml"
-    server.vm.provision :rke2, run: "once" do |rke2|
-      rke2.env = %w[INSTALL_RKE2_CHANNEL=channel INSTALL_RKE2_TYPE=server INSTALL_RKE2_VERSION=rke2_version]
-      rke2.config_mode = '0644' # side-step https://github.com/k3s-io/k3s/issues/4321
-       # note that write-kubeconfig-mode needs to be a string
-      rke2.config = <<~YAML
-        write-kubeconfig-mode: '0644'
-        node-external-ip: #{server_ip}
-        node-ip: #{server_ip}
-
-        token: vagrant-rke2
-        cni: calico
-        # disable:
-        # - rke2-canal
-        # - rke2-kube-proxy
-        # network:
-        #     plugin: none
-        # cluster-cidr: 10.42.0.0/16
-        # service-cidr: 10.96.0.0/16
-      YAML
-    end
+    # install RKE2
+    server.vm.provision "Install RKE2", type: "shell", inline: <<~SHELL
+      sudo mkdir -p /etc/rancher/rke2
+      cat <<-EOF > /etc/rancher/rke2/config.yaml
+      write-kubeconfig-mode: '0644'
+      node-external-ip: #{server_ip}
+      node-ip: #{server_ip}
+      token: #{token}
+      cni: #{x.fetch('network').fetch('cni')}
+EOF
+      curl -sfL https://get.rke2.io | sudo INSTALL_RKE2_CHANNEL=latest INSTALL_RKE2_TYPE="server" sh -
+      sudo systemctl enable rke2-server.service --now
+      cat <<-EOF > /etc/profile.d/rke2.sh
+      export KUBECONFIG=/etc/rancher/rke2/rke2.yaml PATH=/usr/local/bin:$PATH:/var/lib/rancher/rke2/bin
+      alias k=kubectl
+EOF
+    SHELL
   end
 
   # iterate over the number of workers
-  workers.times do |i|
-    config.vm.define "worker-#{i+1}" do |worker|
-        worker.vm.box = box
-        worker.vm.hostname = "worker-#{i+1}"
-        worker.vm.network "private_network", ip: "#{c.fetch('workers.base_ip', '10.10.1')}.#{i+103}", netmask: net_mask
-        # worker.vm.provision "Set DNS", type: "shell", inline: "systemd-resolve --set-dns=
-        worker.vm.provision :rke2, run: "once" do |rke2|
-            rke2.env = %w[INSTALL_RKE2_CHANNEL=c.fetch('rke2.channel', 'latest') INSTALL_RKE2_TYPE=agent INSTALL_RKE2_VERSION=c.fetch('rke2.version', 'rke2_version')] 
-            rke2.config_mode = '0644' # side-step
-            rke2.config = <<~YAML
-                write-kubeconfig-mode: 0644
-                node-external-ip: #{worker_base_ip}.#{i+103}
-                node-ip: #{c.fetch('workers.base_ip', '10.10.1')}.#{i+103}
+  # workers.times do |i|
+  #   # generate the IP address for the worker by appending the worker number to the base IP
+  #   node_ip = IPAddr.new("#{x['network']['base_ip']}.#{i+10}")
+  #   ip = "#{x['network']['base_ip']}.#{i+10}"
+  #   puts "Node IP: #{ip}"
+  #   # define the worker
+  #   # ip = x.fetch('network').fetch('base_ip')
+  #   # node_ip = IPAddr.new("#x['network']['base_ip']}.#{i+10}")
+  #   config.vm.define "worker-#{i+1}" do |worker|
+  #       worker.vm.box = x.fetch('vagrant').fetch('box')
+  #       worker.vm.hostname = "worker-#{i+1}"
+  #       worker.vm.network x.fetch('network').fetch('type'), ip: IPAddr.new(node_ip.to_i, Socket::AF_INET).to_s, nic_type: $private_nic_type, netmask: x.fetch('network').fetch('netmask')
+  #       # # set the DNS to 8.8.8.8
+  #       worker.vm.provision "Set DNS", type: "shell", inline: <<~SHELL
+  #         # get system connection name from nmcli
+  #         conn=$(nmcli -t -f NAME c show --active | head -n1)
+  #         sudo nmcli con mod "${conn}" ipv4.dns "8.8.8.8 8.8.4.4"
+  #       SHELL
+  #       # worker.vm.provision "Set DNS", type: "shell", inline: "systemd-resolve --set-dns=
+  #       worker.vm.provision :rke2, run: "once" do |rke2|
+  #           rke2.env = %w[INSTALL_RKE2_CHANNEL=latest INSTALL_RKE2_TYPE=agent INSTALL_RKE2_VERSION=x.fetch('rke2').fetch('version')] 
+  #           rke2.config_mode = '0644' # side-step
+  #           rke2.config = <<~YAML
+  #               write-kubeconfig-mode: 0644
+  #               node-external-ip: #{ip}
+  #               node-ip: #{ip}
                 
-                server: https://#{server_ip}:9345
-                token: vagrant-rke2
-            YAML
-        end
-    end
-  end
+  #               server: https://#{server_ip}:9345
+  #               token: #{token}
+  #           YAML
+  #       end
+  #   end
+  # end
 end
