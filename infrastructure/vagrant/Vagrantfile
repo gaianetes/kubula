@@ -10,13 +10,14 @@ defaults = {
   'vagrant' => {
     'min_version' => '2.2.17',
     'cpus' => 2,
-    'memory' => 4096
+    'memory' => 4096,
+    'box' => 'generic/rocky8',
   },
 }
 # Merge the loaded configuration with the defaults
-config = defaults.merge(config_data)
+c = defaults.merge(config_data)
 
-Vagrant.require_version ">= #{config['vagrant']['min_version']}"
+Vagrant.require_version ">= #{c['vagrant']['min_version']}"
 
 Vagrant.configure("2") do |config|
   # For user example 
@@ -25,28 +26,31 @@ Vagrant.configure("2") do |config|
   config.vagrant.plugins = ["vagrant-reload"]
 
   config.vm.provider "libvirt" do |v|
-    v.cpus = config['vagrant']['cpus']      
-    v.memory = config['vagrant']['memory']
+    v.cpus = c['vagrant']['cpus']
+    v.memory = c['vagrant']['memory']
   end
 
   config.vm.provider "virtualbox" do |v|
-    v.cpus = config['vagrant']['cpus']
-    v.memory = config['vagrant']['memory']
+    v.cpus = c['vagrant']['cpus']
+    v.memory = c['vagrant']['memory']
     v.linked_clone = true
   end
-
-  server_ip = "10.10.10.100"
-  worker_base_ip = "10.10.10"
   # define number of workers
-  workers = 3
+  workers = c.fetch('workers.count', 1)
   # define number of servers
   # if we want to make this a HA cluster, we can set this to 3 and use something like HAProxy
-  servers = 1
+  servers = c.fetch('servers.count', 1)
+  box = c.fetch('vagrant.box', 'generic/rocky8')
+  server_ip = c.fetch('server.ip', '10.10.0.10')
+  worker_base_ip = c.fetch('workers.base_ip', '10.10.1')
+  net_mask = c.fetch('network.mask', '255.255.255.0')
+  channel = c.fetch('rke2.channel', 'latest')
+  rke2_version = c.fetch('rke2.version', 'v1.30.0+rke2r1')
 
   config.vm.define "server" do |server|
-    server.vm.box = 'generic/rocky8'
+    server.vm.box = box
     server.vm.hostname = 'server'
-    server.vm.network "private_network", ip: server_ip, netmask: "255.255.255.0"
+    server.vm.network "private_network", ip: server_ip, netmask: net_mask
     # generic/ubuntu2004 suffers from poor default dns servers, creates problems with hitting github.com immediately
     # server.vm.provision "Set DNS", type: "shell", inline: "systemd-resolve --set-dns=8.8.8.8 --interface=eth0"
     server.vm.provision "Create Server Manifests Directory", type: "shell", inline: "sudo mkdir -p /var/lib/rancher/rke2/server/manifests"
@@ -57,7 +61,7 @@ Vagrant.configure("2") do |config|
     # copy file to /var/lib/rancher/rke2/server/manifests/rke2-cilium-helm-config.yaml
     # server.vm.provision "Copy Cilium Config", type: "shell", inline: "sudo cp /tmp/rke2-cilium-helm-config.yaml /var/lib/rancher/rke2/server/manifests/rke2-cilium-helm-config.yaml"
     server.vm.provision :rke2, run: "once" do |rke2|
-      rke2.env = %w[INSTALL_RKE2_CHANNEL=latest INSTALL_RKE2_TYPE=server INSTALL_RKE2_VERSION=v1.30.0+rke2r1]
+      rke2.env = %w[INSTALL_RKE2_CHANNEL=channel INSTALL_RKE2_TYPE=server INSTALL_RKE2_VERSION=rke2_version]
       rke2.config_mode = '0644' # side-step https://github.com/k3s-io/k3s/issues/4321
        # note that write-kubeconfig-mode needs to be a string
       rke2.config = <<~YAML
@@ -81,17 +85,17 @@ Vagrant.configure("2") do |config|
   # iterate over the number of workers
   workers.times do |i|
     config.vm.define "worker-#{i+1}" do |worker|
-        worker.vm.box = 'generic/rocky8'
+        worker.vm.box = box
         worker.vm.hostname = "worker-#{i+1}"
-        worker.vm.network "private_network", ip: "#{worker_base_ip}.#{i+103}", netmask: "255.255.255.0"
+        worker.vm.network "private_network", ip: "#{c.fetch('workers.base_ip', '10.10.1')}.#{i+103}", netmask: net_mask
         # worker.vm.provision "Set DNS", type: "shell", inline: "systemd-resolve --set-dns=
         worker.vm.provision :rke2, run: "once" do |rke2|
-            rke2.env = %w[INSTALL_RKE2_CHANNEL=latest INSTALL_RKE2_TYPE=agent INSTALL_RKE2_VERSION=v1.30.0+rke2r1] 
+            rke2.env = %w[INSTALL_RKE2_CHANNEL=c.fetch('rke2.channel', 'latest') INSTALL_RKE2_TYPE=agent INSTALL_RKE2_VERSION=c.fetch('rke2.version', 'rke2_version')] 
             rke2.config_mode = '0644' # side-step
             rke2.config = <<~YAML
                 write-kubeconfig-mode: 0644
                 node-external-ip: #{worker_base_ip}.#{i+103}
-                node-ip: #{worker_base_ip}.#{i+103}
+                node-ip: #{c.fetch('workers.base_ip', '10.10.1')}.#{i+103}
                 
                 server: https://#{server_ip}:9345
                 token: vagrant-rke2
