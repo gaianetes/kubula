@@ -1,0 +1,33 @@
+cluster:
+  name: smig-cluster1
+  id: 11
+prometheus:
+  enabled: true
+  serviceMonitor:
+    enabled: false
+dashboards:
+  enabled: true
+hubble:
+  metrics:
+    enabled:
+    - dns:query;ignoreAAAA
+    - drop
+    - tcp
+    - flow
+    - icmp
+    - http
+    dashboards:
+      enabled: true
+  relay:
+    enabled: true
+    prometheus:
+      enabled: true
+  ui:
+    enabled: true
+    baseUrl: "/"
+version: 1.15.5
+operator:
+  prometheus:
+    enabled: true
+  dashboards:
+    enabled: true

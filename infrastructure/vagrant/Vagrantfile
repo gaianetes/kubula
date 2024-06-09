@@ -87,13 +87,34 @@ Vagrant.configure("2") do |config|
     server.vm.provision "Network Prerequisites", type: "shell", inline: <<~SHELL
       sudo modprobe overlay
       sudo modprobe br_netfilter
-      sudo sysctl -w net.ipv4.ip_forward=1
-      sudo sysctl -w net.ipv4.conf.all.accept_redirects=0
-      sudo sysctl -w net.ipv4.conf.default.accept_redirects=0
-      # disable ipv6
-      sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
-      sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
       sudo su -
+      # update sysctl file
+      sudo cat <<-EOF > /etc/sysctl.conf
+      net.ipv4.ip_forward=1
+      net.ipv4.conf.all.send_redirects=0
+      net.ipv4.conf.default.send_redirects=0
+      net.ipv4.conf.default.accept_source_route=0
+      net.ipv4.conf.all.accept_redirects=0
+      net.ipv4.conf.default.accept_redirects=0
+      net.ipv4.conf.all.log_martians=1
+      net.ipv4.conf.default.log_martians=1
+      net.ipv4.conf.all.rp_filter=1
+      net.ipv4.conf.default.rp_filter=1
+      net.ipv6.conf.all.accept_ra=0
+      net.ipv6.conf.default.accept_ra=0
+      net.ipv6.conf.all.accept_redirects=0
+      net.ipv6.conf.default.accept_redirects=0
+      kernel.keys.root_maxbytes=25000000
+      kernel.keys.root_maxkeys=1000000
+      kernel.panic=10
+      kernel.panic_on_oops=1
+      vm.overcommit_memory=1
+      vm.panic_on_oom=0
+      net.ipv4.ip_local_reserved_ports=30000-32767
+      net.bridge.bridge-nf-call-iptables=1
+      net.bridge.bridge-nf-call-arptables=1
+      net.bridge.bridge-nf-call-ip6tables=1
+EOF
       cat <<-EOF | sudo tee /etc/modules-load.d/kubernetes.conf
       overlay
       br_netfilter
@@ -111,8 +132,12 @@ EOF
       sudo dnf -y upgrade --refresh
       sudo rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
       sudo dnf install https://www.elrepo.org/elrepo-release-8.el8.elrepo.noarch.rpm -y
-      sudo dnf --enablerepo=elrepo-kernel install -y kernel-ml kernel-ml-core kernel-ml-headers kernel-ml-modules kernel-ml-modules-extra
+      sudo dnf --enablerepo=elrepo-kernel install -y kernel-ml #kernel-ml-{core,headers,modules,modules-extra}
+      # set the new kernel as the default
+      sudo grubby --set-default /boot/vmlinuz-$(rpm -q kernel-ml --qf "%{version}-%{release}.$(uname -m)\n")
     SHELL
+    # reload
+    server.vm.provision :reload
     # selinux configuration
     server.vm.provision "SELinux Configuration", type: "shell", inline: <<~SHELL
       sudo dnf install -y container-selinux
@@ -149,11 +174,26 @@ EOF
     ### Finally apply all the firewall changes
     sudo firewall-cmd --reload
     SHELL
+    # storage configuration
+    server.vm.provision "Storage Configuration", type: "shell", inline: <<~SHELL
+      sudo su -
+      yum install -y nano curl wget git tmux jq vim-common iscsi-initiator-utils
+      echo "iscsi_tcp" >/etc/modules-load.d/iscsi-tcp.conf
+      systemctl enable iscsid --now
+      systemctl start iscsid
+      cat <<-EOF > /etc/NetworkManager/conf.d/rke2-canal.conf
+      [keyfile]
+      unmanaged-devices=interface-name:cali*;interface-name:flannel*
+EOF
+      systemctl reload NetworkManager
+      exit
+    SHELL
     server.vm.provision "Create Server Manifests Directory", type: "shell", inline: "sudo mkdir -p /var/lib/rancher/rke2/server/manifests"
     # echo out the current user
     server.vm.provision "Echo Current User", type: "shell", inline: "echo $USER"
     # upload file
     server.vm.provision "Upload Cilium Config", type: "file", source: "./files/rke2-cilium-helm-config.yaml", destination: "/tmp/rke2-cilium-helm-config.yaml"
+    server.vm.provision "Upload Cilium values", type: "file", source: "./files/cilium-values.yaml", destination: "/tmp/cilium-values.yaml"
     # copy file to /var/lib/rancher/rke2/server/manifests/rke2-cilium-helm-config.yaml
     # server.vm.provision "Copy Cilium Config", type: "shell", inline: "sudo cp /tmp/rke2-cilium-helm-config.yaml /var/lib/rancher/rke2/server/manifests/rke2-cilium-helm-config.yaml"
     # install RKE2
@@ -161,10 +201,19 @@ EOF
       sudo mkdir -p /etc/rancher/rke2
       cat <<-EOF > /etc/rancher/rke2/config.yaml
       write-kubeconfig-mode: '0644'
+      selinux: false
       node-external-ip: #{server_ip}
       node-ip: #{server_ip}
       token: #{token}
-      cni: #{x.fetch('network').fetch('cni')}
+      disable:
+        - rke2-canal
+        - rke2-kube-proxy
+        - rke2-ingress-nginx
+      network:
+        plugin: none
+      cni: none
+      disable-kube-proxy: true
+      # cni: #{x.fetch('network').fetch('cni')}
 EOF
       curl -sfL https://get.rke2.io | sudo INSTALL_RKE2_CHANNEL=latest INSTALL_RKE2_TYPE="server" sh -
       sudo systemctl enable rke2-server.service --now
@@ -173,40 +222,74 @@ EOF
       alias k=kubectl
 EOF
     SHELL
+    # download the cilium CLI
+    server.vm.provision "Download Cilium CLI", type: "shell", inline: <<~SHELL
+      CILIUM_CLI_VERSION=$(curl -s https://raw.githubusercontent.com/cilium/cilium-cli/main/stable.txt)
+      CLI_ARCH=amd64
+      curl -L --fail --remote-name-all https://github.com/cilium/cilium-cli/releases/download/${CILIUM_CLI_VERSION}/cilium-linux-${CLI_ARCH}.tar.gz{,.sha256sum}
+      sha256sum --check cilium-linux-${CLI_ARCH}.tar.gz.sha256sum
+      sudo tar xzvfC cilium-linux-${CLI_ARCH}.tar.gz /usr/local/bin
+      rm cilium-linux-${CLI_ARCH}.tar.gz{,.sha256sum}
+    SHELL
+    # use cilium CLI to install cilium
+    server.vm.provision "Install Cilium", type: "shell", inline: <<~SHELL
+      cilium install -f /tmp/cilium-values.yaml
+    SHELL
+    # download K9s
+    if x.fetch('k9s').fetch('install') == true
+      server.vm.provision "Download K9s", type: "shell", inline: <<~SHELL
+        # get K9s version from config, if not found default to v0.32.4
+        K9S_VERSION=#{x.fetch('k9s').fetch('version')}
+        # download RPM: https://github.com/derailed/k9s/releases/download/v0.32.4/k9s_linux_amd64.rpm
+        curl -LO https://github.com/derailed/k9s/releases/download/v0.32.4/k9s_linux_amd64.rpm
+        sudo rpm -i k9s_linux_amd64.rpm
+        rm k9s_linux_amd64.rpm
+      SHELL
+    end
+    if x.fetch('helm').fetch('install') == true
+      server.vm.provision "Download Helm", type: "shell", inline: <<~SHELL
+        # get Helm version from config, if not found default to v3.6.3
+        HELM_VERSION=#{x.fetch('helm').fetch('version')}
+        curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+        chmod 700 get_helm.sh
+        ./get_helm.sh
+        rm get_helm.sh
+      SHELL
+    end
   end
 
   # iterate over the number of workers
-  # workers.times do |i|
-  #   # generate the IP address for the worker by appending the worker number to the base IP
-  #   node_ip = IPAddr.new("#{x['network']['base_ip']}.#{i+10}")
-  #   ip = "#{x['network']['base_ip']}.#{i+10}"
-  #   puts "Node IP: #{ip}"
-  #   # define the worker
-  #   # ip = x.fetch('network').fetch('base_ip')
-  #   # node_ip = IPAddr.new("#x['network']['base_ip']}.#{i+10}")
-  #   config.vm.define "worker-#{i+1}" do |worker|
-  #       worker.vm.box = x.fetch('vagrant').fetch('box')
-  #       worker.vm.hostname = "worker-#{i+1}"
-  #       worker.vm.network x.fetch('network').fetch('type'), ip: IPAddr.new(node_ip.to_i, Socket::AF_INET).to_s, nic_type: $private_nic_type, netmask: x.fetch('network').fetch('netmask')
-  #       # # set the DNS to 8.8.8.8
-  #       worker.vm.provision "Set DNS", type: "shell", inline: <<~SHELL
-  #         # get system connection name from nmcli
-  #         conn=$(nmcli -t -f NAME c show --active | head -n1)
-  #         sudo nmcli con mod "${conn}" ipv4.dns "8.8.8.8 8.8.4.4"
-  #       SHELL
-  #       # worker.vm.provision "Set DNS", type: "shell", inline: "systemd-resolve --set-dns=
-  #       worker.vm.provision :rke2, run: "once" do |rke2|
-  #           rke2.env = %w[INSTALL_RKE2_CHANNEL=latest INSTALL_RKE2_TYPE=agent INSTALL_RKE2_VERSION=x.fetch('rke2').fetch('version')] 
-  #           rke2.config_mode = '0644' # side-step
-  #           rke2.config = <<~YAML
-  #               write-kubeconfig-mode: 0644
-  #               node-external-ip: #{ip}
-  #               node-ip: #{ip}
+  workers.times do |i|
+    # generate the IP address for the worker by appending the worker number to the base IP
+    node_ip = IPAddr.new("#{x['network']['base_ip']}.#{i+10}")
+    ip = "#{x['network']['base_ip']}.#{i+10}"
+    puts "Node IP: #{ip}"
+    # define the worker
+    # ip = x.fetch('network').fetch('base_ip')
+    # node_ip = IPAddr.new("#x['network']['base_ip']}.#{i+10}")
+    config.vm.define "worker-#{i+1}" do |worker|
+        worker.vm.box = x.fetch('vagrant').fetch('box')
+        worker.vm.hostname = "worker-#{i+1}"
+        worker.vm.network x.fetch('network').fetch('type'), ip: IPAddr.new(node_ip.to_i, Socket::AF_INET).to_s, nic_type: $private_nic_type, netmask: x.fetch('network').fetch('netmask')
+        # # set the DNS to 8.8.8.8
+        worker.vm.provision "Set DNS", type: "shell", inline: <<~SHELL
+          # get system connection name from nmcli
+          conn=$(nmcli -t -f NAME c show --active | head -n1)
+          sudo nmcli con mod "${conn}" ipv4.dns "8.8.8.8 8.8.4.4"
+        SHELL
+        # worker.vm.provision "Set DNS", type: "shell", inline: "systemd-resolve --set-dns=
+        worker.vm.provision :rke2, run: "once" do |rke2|
+            rke2.env = %w[INSTALL_RKE2_CHANNEL=latest INSTALL_RKE2_TYPE=agent INSTALL_RKE2_VERSION=x.fetch('rke2').fetch('version')] 
+            rke2.config_mode = '0644' # side-step
+            rke2.config = <<~YAML
+                write-kubeconfig-mode: 0644
+                node-external-ip: #{ip}
+                node-ip: #{ip}
                 
-  #               server: https://#{server_ip}:9345
-  #               token: #{token}
-  #           YAML
-  #       end
-  #   end
-  # end
+                server: https://#{server_ip}:9345
+                token: #{token}
+            YAML
+        end
+    end
+  end
 end

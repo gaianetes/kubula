@@ -21,3 +21,9 @@ network:
   netmask: 255.255.255.0
   base_ip: 10.42.0
   cni: calico
+k9s:
+  version: v0.32.4
+  install: true
+helm:
+  install: true
+  version: v3.15.1
