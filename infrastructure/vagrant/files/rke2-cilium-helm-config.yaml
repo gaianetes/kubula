@@ -1,0 +1,42 @@
+# /var/lib/rancher/rke2/server/manifests/rke2-cilium-config.yaml
+---
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: rke2-cilium
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    cluster:
+      name: smig-cluster1
+      id: 11
+    prometheus:
+      enabled: true
+      serviceMonitor:
+        enabled: false
+    dashboards:
+      enabled: true
+    hubble:
+      metrics:
+        enabled:
+        - dns:query;ignoreAAAA
+        - drop
+        - tcp
+        - flow
+        - icmp
+        - http
+        dashboards:
+          enabled: true
+      relay:
+        enabled: true
+        prometheus:
+          enabled: true
+      ui:
+        enabled: true
+        baseUrl: "/"
+    version: 1.15.5
+    operator:
+      prometheus:
+        enabled: true
+      dashboards:
+        enabled: true

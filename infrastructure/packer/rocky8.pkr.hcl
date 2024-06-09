@@ -12,6 +12,10 @@ packer {
       source  = "github.com/hashicorp/virtualbox"
       version = "~> 1"
     }
+    hyperv = {
+      source  = "github.com/hashicorp/hyperv"
+      version = "~> 1"
+    }
   }
 }
 
@@ -98,8 +102,31 @@ source "virtualbox-iso" "rocky" {
   vm_name = "${var.vm_name}"
 }
 
+source "hyperv-iso" "rocky" {
+  boot_command         = ["<tab><bs><bs><bs><bs><bs>text ks=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ks.cfg<enter><wait>"]
+  boot_wait            = "${var.boot_wait}"
+  cpus                 = "${var.numvcpus}"
+  memory               = "${var.memsize}"
+  disk_size            = "${var.disk_size}"
+  guest_additions_mode = "disable"
+  # guest_os_type        = "RedHat_64"
+  headless             = false
+  http_directory       = "./http"
+  iso_checksum         = "${var.iso_checksum}"
+  iso_url              = "${var.iso_url}"
+  shutdown_command     = "echo 'packer'|sudo -S /sbin/halt -h -p"
+  ssh_password         = "${var.ssh_password}"
+  ssh_port             = 22
+  ssh_timeout          = "30m"
+  ssh_username         = "${var.ssh_username}"
+  vm_name              = "${var.vm_name}"
+}
+
 build {
-  sources = ["source.virtualbox-iso.rocky"]
+  sources = [
+    # "source.virtualbox-iso.rocky",
+    "source.hyperv-iso.rocky"  
+  ]
 
   provisioner "shell" {
     execute_command = "echo 'packer'|{{ .Vars }} sudo -S -E bash '{{ .Path }}'"
@@ -154,15 +181,16 @@ build {
   post-processors {
     post-processor "vagrant" {
       output = "builds/{{ .Provider }}-rockylinux8-${var.version}.box"
-      vagrantfile_template = "templates/Vagrantfile.template"
+      # vagrantfile_template = "templates/Vagrantfile.template"
+      keep_input_artifact = true
       compression_level = 9
     }
-    post-processor "vagrant-cloud" {
-      box_tag             = "mitchmurphy/rockylinux-rke2"
-      version             = "${var.version}"
-      access_token        = "${var.vagrant_cloud_token}"
-      # keep_input_artifact = false # should proly use this for other provioners (eg. hyper-v)
-    }
+    # post-processor "vagrant-cloud" {
+    #   box_tag             = "mitchmurphy/rockylinux-rke2"
+    #   version             = "${var.version}"
+    #   access_token        = "${var.vagrant_cloud_token}"
+    #   # keep_input_artifact = false # should proly use this for other provioners (eg. hyper-v)
+    # }
   }
 
 }
