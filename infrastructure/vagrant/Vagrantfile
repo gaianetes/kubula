@@ -46,6 +46,11 @@ Vagrant.require_version ">= 2.2.17"
 
 $private_nic_type = x.fetch('network').fetch('private_nic_type')
 
+$dns_script = <<-SCRIPT
+  conn=$(nmcli -t -f NAME c show --active | head -n1)
+  sudo nmcli con mod "${conn}" ipv4.dns "8.8.8.8 8.8.4.4"
+SCRIPT
+
 Vagrant.configure("2") do |config|
   # For user example 
   # config.vagrant.plugins = ["vagrant-reload", "vagrant-rke2"]
@@ -78,121 +83,22 @@ Vagrant.configure("2") do |config|
     server.vm.hostname = 'server'
     server.vm.network x.fetch('network').fetch('type'), ip: server_ip, netmask: x.fetch('network').fetch('netmask'), nic_type: $private_nic_type
     # generic/ubuntu2004 suffers from poor default dns servers, creates problems with hitting github.com immediately
-    server.vm.provision "Set DNS", type: "shell", inline: <<~SHELL
-      # get system connection name from nmcli
-      conn=$(nmcli -t -f NAME c show --active | head -n1)
-      sudo nmcli con mod "${conn}" ipv4.dns "8.8.8.8 8.8.4.4"
-    SHELL
+    server.vm.provision "Set DNS", type: "shell", inline: $dns_script
     # perform network prequisites for eBPF
-    server.vm.provision "Network Prerequisites", type: "shell", inline: <<~SHELL
-      sudo modprobe overlay
-      sudo modprobe br_netfilter
-      sudo su -
-      # update sysctl file
-      sudo cat <<-EOF > /etc/sysctl.conf
-      net.ipv4.ip_forward=1
-      net.ipv4.conf.all.send_redirects=0
-      net.ipv4.conf.default.send_redirects=0
-      net.ipv4.conf.default.accept_source_route=0
-      net.ipv4.conf.all.accept_redirects=0
-      net.ipv4.conf.default.accept_redirects=0
-      net.ipv4.conf.all.log_martians=1
-      net.ipv4.conf.default.log_martians=1
-      net.ipv4.conf.all.rp_filter=1
-      net.ipv4.conf.default.rp_filter=1
-      net.ipv6.conf.all.accept_ra=0
-      net.ipv6.conf.default.accept_ra=0
-      net.ipv6.conf.all.accept_redirects=0
-      net.ipv6.conf.default.accept_redirects=0
-      kernel.keys.root_maxbytes=25000000
-      kernel.keys.root_maxkeys=1000000
-      kernel.panic=10
-      kernel.panic_on_oops=1
-      vm.overcommit_memory=1
-      vm.panic_on_oom=0
-      net.ipv4.ip_local_reserved_ports=30000-32767
-      net.bridge.bridge-nf-call-iptables=1
-      net.bridge.bridge-nf-call-arptables=1
-      net.bridge.bridge-nf-call-ip6tables=1
-EOF
-      cat <<-EOF | sudo tee /etc/modules-load.d/kubernetes.conf
-      overlay
-      br_netfilter
-EOF
-    cat <<-EOF | sudo tee /etc/sysctl.d/kubernetes.conf
-      net.bridge.bridge-nf-call-ip6tables = 1
-      net.bridge.bridge-nf-call-iptables = 1
-      net.ipv4.ip_forward = 1
-EOF
-    sysctl --system
-    exit
-    SHELL
+    server.vm.provision "Network Prerequisites", type: "shell", path: "./scripts/network.sh"
+
     # Kernel configuration for Cilium
-    server.vm.provision "Kernel Configuration", type: "shell", inline: <<~SHELL
-      sudo dnf -y upgrade --refresh
-      sudo rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
-      sudo dnf install https://www.elrepo.org/elrepo-release-8.el8.elrepo.noarch.rpm -y
-      sudo dnf --enablerepo=elrepo-kernel install -y kernel-ml #kernel-ml-{core,headers,modules,modules-extra}
-      # set the new kernel as the default
-      sudo grubby --set-default /boot/vmlinuz-$(rpm -q kernel-ml --qf "%{version}-%{release}.$(uname -m)\n")
-    SHELL
+    server.vm.provision "Kernel Configuration", type: "shell", path: "./scripts/kernel.sh"
     # reload
     server.vm.provision :reload
     # selinux configuration
-    server.vm.provision "SELinux Configuration", type: "shell", inline: <<~SHELL
-      sudo dnf install -y container-selinux
-      sudo setenforce 0
-      sudo sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
-    SHELL
+    server.vm.provision "SELinux Configuration", type: "shell", path: "./scripts/selinux.sh"
 
     # firewall configuration
-    server.vm.provision "Firewall Configuration", type: "shell", inline: <<~SHELL
-    ALLOWED_PORTS=( 6443 9100 8080 4245 9345 6443 6444 10250 10259 10257 2379 2380 9796 19090 9090 6942 9091 4244 4240 80 443 9963 9964 8081 8082 7000 9001 6379 9121 8084 6060 6061 6062 9879 9890 9891 9892 9893 9962 9966 ) 
-    for i in "${ALLOWED_PORTS[@]}"
-    do
-      sudo firewall-cmd --add-port=$i/tcp --permanent
-    done
-
-    sudo firewall-cmd --add-port=30000-32767/tcp --permanent
-    sudo firewall-cmd --remove-icmp-block=echo-request --permanent
-    sudo firewall-cmd --remove-icmp-block=echo-reply --permanent
-    # Since we are using Cilium with GENEVE as overlay, we need the following port too:
-    # UDP
-    UDP_PORTS=( 8472 4789 6081 51871 53 55355 58467 41637 39291 38519 46190 )
-    for i in "${UDP_PORTS[@]}"
-    do
-      sudo firewall-cmd --add-port=$i/udp --permanent
-    done
-    sudo firewall-cmd --reload
-    ### Ingress Controller specific ports
-
-    ### To get DNS resolution working, simply enable Masquerading.
-    sudo firewall-cmd --zone=public  --add-masquerade --permanent
-
-    sudo firewall-cmd --zone=trusted --permanent --add-source=192.168.0.0/16
-
-    ### Finally apply all the firewall changes
-    sudo firewall-cmd --reload
-    SHELL
-    # storage configuration
-    server.vm.provision "Storage Configuration", type: "shell", inline: <<~SHELL
-      sudo su -
-      yum install -y nano curl wget git tmux jq vim-common iscsi-initiator-utils
-      echo "iscsi_tcp" >/etc/modules-load.d/iscsi-tcp.conf
-      systemctl enable iscsid --now
-      systemctl start iscsid
-      cat <<-EOF > /etc/NetworkManager/conf.d/rke2-canal.conf
-      [keyfile]
-      unmanaged-devices=interface-name:cali*;interface-name:flannel*
-EOF
-      systemctl reload NetworkManager
-      exit
-    SHELL
+    server.vm.provision "Firewall Configuration", type: "shell", path: "./scripts/firewall.sh"
     server.vm.provision "Create Server Manifests Directory", type: "shell", inline: "sudo mkdir -p /var/lib/rancher/rke2/server/manifests"
-    # echo out the current user
-    server.vm.provision "Echo Current User", type: "shell", inline: "echo $USER"
     # upload file
-    server.vm.provision "Upload Cilium Config", type: "file", source: "./files/rke2-cilium-helm-config.yaml", destination: "/tmp/rke2-cilium-helm-config.yaml"
+    server.vm.provision "Upload Cilium Config", type: "file", source: "./files/rke2-cilium-helm-config.yaml", destination: "$HOME/rke2-cilium-helm-config.yaml"
     server.vm.provision "Upload Cilium values", type: "file", source: "./files/cilium-values.yaml", destination: "/tmp/cilium-values.yaml"
     # copy file to /var/lib/rancher/rke2/server/manifests/rke2-cilium-helm-config.yaml
     # server.vm.provision "Copy Cilium Config", type: "shell", inline: "sudo cp /tmp/rke2-cilium-helm-config.yaml /var/lib/rancher/rke2/server/manifests/rke2-cilium-helm-config.yaml"
@@ -209,32 +115,24 @@ EOF
         - rke2-canal
         - rke2-kube-proxy
         - rke2-ingress-nginx
+      disable-kube-proxy: true
+      cni: #{x.fetch('network').fetch('cni')}
       network:
         plugin: none
-      cni: none
-      disable-kube-proxy: true
-      # cni: #{x.fetch('network').fetch('cni')}
-EOF
-      curl -sfL https://get.rke2.io | sudo INSTALL_RKE2_CHANNEL=latest INSTALL_RKE2_TYPE="server" sh -
-      sudo systemctl enable rke2-server.service --now
-      cat <<-EOF > /etc/profile.d/rke2.sh
-      export KUBECONFIG=/etc/rancher/rke2/rke2.yaml PATH=/usr/local/bin:$PATH:/var/lib/rancher/rke2/bin
-      alias k=kubectl
 EOF
     SHELL
-    # download the cilium CLI
-    server.vm.provision "Download Cilium CLI", type: "shell", inline: <<~SHELL
-      CILIUM_CLI_VERSION=$(curl -s https://raw.githubusercontent.com/cilium/cilium-cli/main/stable.txt)
-      CLI_ARCH=amd64
-      curl -L --fail --remote-name-all https://github.com/cilium/cilium-cli/releases/download/${CILIUM_CLI_VERSION}/cilium-linux-${CLI_ARCH}.tar.gz{,.sha256sum}
-      sha256sum --check cilium-linux-${CLI_ARCH}.tar.gz.sha256sum
-      sudo tar xzvfC cilium-linux-${CLI_ARCH}.tar.gz /usr/local/bin
-      rm cilium-linux-${CLI_ARCH}.tar.gz{,.sha256sum}
+    # install RKE2
+    server.vm.provision :shell, :path => "./scripts/install_rke2.sh", :args => [server_ip, token, "server"]
+    # install_cilium
+    server.vm.provision :shell, :path => "./scripts/install_cilium.sh"
+    # Configure Cilium
+    server.vm.provision "Configure Cilium", type: "shell", inline: <<~SHELL
+      cilium install -f "/tmp/cilium-values.yaml"
     SHELL
     # use cilium CLI to install cilium
-    server.vm.provision "Install Cilium", type: "shell", inline: <<~SHELL
-      cilium install -f /tmp/cilium-values.yaml
-    SHELL
+    # server.vm.provision "Install Cilium", type: "shell", inline: <<~SHELL
+    #   cilium install -f /tmp/cilium-values.yaml
+    # SHELL
     # download K9s
     if x.fetch('k9s').fetch('install') == true
       server.vm.provision "Download K9s", type: "shell", inline: <<~SHELL
@@ -268,140 +166,30 @@ EOF
     # ip = x.fetch('network').fetch('base_ip')
     # node_ip = IPAddr.new("#x['network']['base_ip']}.#{i+10}")
     config.vm.define "worker-#{i+1}" do |worker|
-        worker.vm.box = x.fetch('vagrant').fetch('box')
-        worker.vm.hostname = "worker-#{i+1}"
-        worker.vm.network x.fetch('network').fetch('type'), ip: IPAddr.new(node_ip.to_i, Socket::AF_INET).to_s, nic_type: $private_nic_type, netmask: x.fetch('network').fetch('netmask')
-        # # set the DNS to 8.8.8.8
-        worker.vm.provision "Set DNS", type: "shell", inline: <<~SHELL
-          # get system connection name from nmcli
-          conn=$(nmcli -t -f NAME c show --active | head -n1)
-          sudo nmcli con mod "${conn}" ipv4.dns "8.8.8.8 8.8.4.4"
-        SHELL
-        # worker.vm.provision "Set DNS", type: "shell", inline: "systemd-resolve --set-dns=
-        
-    # perform network prequisites for eBPF
-    worker.vm.provision "Network Prerequisites", type: "shell", inline: <<~SHELL
-      sudo modprobe overlay
-      sudo modprobe br_netfilter
-      sudo su -
-      # update sysctl file
-      sudo cat <<-EOF > /etc/sysctl.conf
-      net.ipv4.ip_forward=1
-      net.ipv4.conf.all.send_redirects=0
-      net.ipv4.conf.default.send_redirects=0
-      net.ipv4.conf.default.accept_source_route=0
-      net.ipv4.conf.all.accept_redirects=0
-      net.ipv4.conf.default.accept_redirects=0
-      net.ipv4.conf.all.log_martians=1
-      net.ipv4.conf.default.log_martians=1
-      net.ipv4.conf.all.rp_filter=1
-      net.ipv4.conf.default.rp_filter=1
-      net.ipv6.conf.all.accept_ra=0
-      net.ipv6.conf.default.accept_ra=0
-      net.ipv6.conf.all.accept_redirects=0
-      net.ipv6.conf.default.accept_redirects=0
-      kernel.keys.root_maxbytes=25000000
-      kernel.keys.root_maxkeys=1000000
-      kernel.panic=10
-      kernel.panic_on_oops=1
-      vm.overcommit_memory=1
-      vm.panic_on_oom=0
-      net.ipv4.ip_local_reserved_ports=30000-32767
-      net.bridge.bridge-nf-call-iptables=1
-      net.bridge.bridge-nf-call-arptables=1
-      net.bridge.bridge-nf-call-ip6tables=1
-EOF
-      cat <<-EOF | sudo tee /etc/modules-load.d/kubernetes.conf
-      overlay
-      br_netfilter
-EOF
-    cat <<-EOF | sudo tee /etc/sysctl.d/kubernetes.conf
-      net.bridge.bridge-nf-call-ip6tables = 1
-      net.bridge.bridge-nf-call-iptables = 1
-      net.ipv4.ip_forward = 1
-EOF
-    sysctl --system
-    exit
-    SHELL
-    # Kernel configuration for Cilium
-    worker.vm.provision "Kernel Configuration", type: "shell", inline: <<~SHELL
-      sudo dnf -y upgrade --refresh
-      sudo rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
-      sudo dnf install https://www.elrepo.org/elrepo-release-8.el8.elrepo.noarch.rpm -y
-      sudo dnf --enablerepo=elrepo-kernel install -y kernel-ml #kernel-ml-{core,headers,modules,modules-extra}
-      # set the new kernel as the default
-      sudo grubby --set-default /boot/vmlinuz-$(rpm -q kernel-ml --qf "%{version}-%{release}.$(uname -m)\n")
-    SHELL
-    # reload
-    worker.vm.provision :reload
-    # selinux configuration
-    worker.vm.provision "SELinux Configuration", type: "shell", inline: <<~SHELL
-      sudo dnf install -y container-selinux
-      sudo setenforce 0
-      sudo sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
-    SHELL
+      worker.vm.box = x.fetch('vagrant').fetch('box')
+      worker.vm.hostname = "worker-#{i+1}"
+      worker.vm.network x.fetch('network').fetch('type'), ip: IPAddr.new(node_ip.to_i, Socket::AF_INET).to_s, nic_type: $private_nic_type, netmask: x.fetch('network').fetch('netmask')
+      # # set the DNS to 8.8.8.8
+      # generic/ubuntu2004 suffers from poor default dns servers, creates problems with hitting github.com immediately
+      worker.vm.provision "Set DNS", type: "shell", inline: $dns_script
+          
+      # perform network prequisites for eBPF. Run script at $HOME/scripts/network.sh
+      worker.vm.provision "shell", path: "./scripts/network.sh"
 
-    # firewall configuration
-    worker.vm.provision "Firewall Configuration", type: "shell", inline: <<~SHELL
-    ALLOWED_PORTS=( 6443 9100 8080 4245 9345 6443 6444 10250 10259 10257 2379 2380 9796 19090 9090 6942 9091 4244 4240 80 443 9963 9964 8081 8082 7000 9001 6379 9121 8084 6060 6061 6062 9879 9890 9891 9892 9893 9962 9966 ) 
-    for i in "${ALLOWED_PORTS[@]}"
-    do
-      sudo firewall-cmd --add-port=$i/tcp --permanent
-    done
+      # Kernel configuration for Cilium. Run script at $HOME/scripts/kernel.sh
+      worker.vm.provision "shell", path: "./scripts/kernel.sh"
 
-    sudo firewall-cmd --add-port=30000-32767/tcp --permanent
-    sudo firewall-cmd --remove-icmp-block=echo-request --permanent
-    sudo firewall-cmd --remove-icmp-block=echo-reply --permanent
-    # Since we are using Cilium with GENEVE as overlay, we need the following port too:
-    # UDP
-    UDP_PORTS=( 8472 4789 6081 51871 53 55355 58467 41637 39291 38519 46190 )
-    for i in "${UDP_PORTS[@]}"
-    do
-      sudo firewall-cmd --add-port=$i/udp --permanent
-    done
-    sudo firewall-cmd --reload
-    ### Ingress Controller specific ports
+      # reload
+      worker.vm.provision :reload
+      # selinux configuration. Run script at $HOME/scripts/selinux.sh
+      worker.vm.provision "shell", path: "./scripts/selinux.sh"
 
-    ### To get DNS resolution working, simply enable Masquerading.
-    sudo firewall-cmd --zone=public  --add-masquerade --permanent
-
-    sudo firewall-cmd --zone=trusted --permanent --add-source=192.168.0.0/16
-
-    ### Finally apply all the firewall changes
-    sudo firewall-cmd --reload
-    SHELL
-    # storage configuration
-    worker.vm.provision "Storage Configuration", type: "shell", inline: <<~SHELL
-      sudo su -
-      yum install -y nano curl wget git tmux jq vim-common iscsi-initiator-utils
-      echo "iscsi_tcp" >/etc/modules-load.d/iscsi-tcp.conf
-      systemctl enable iscsid --now
-      systemctl start iscsid
-      cat <<-EOF > /etc/NetworkManager/conf.d/rke2-canal.conf
-      [keyfile]
-      unmanaged-devices=interface-name:cali*;interface-name:flannel*
-EOF
-      systemctl reload NetworkManager
-      exit
-    SHELL
-    worker.vm.provision "Create Server Manifests Directory", type: "shell", inline: "sudo mkdir -p /var/lib/rancher/rke2/server/manifests"
-    # echo out the current user
-    worker.vm.provision "Echo Current User", type: "shell", inline: "echo $USER"
-    # upload file
-    worker.vm.provision "Upload Cilium Config", type: "file", source: "./files/rke2-cilium-helm-config.yaml", destination: "/tmp/rke2-cilium-helm-config.yaml"
-    worker.vm.provision "Upload Cilium values", type: "file", source: "./files/cilium-values.yaml", destination: "/tmp/cilium-values.yaml"
-    # copy file to /var/lib/rancher/rke2/server/manifests/rke2-cilium-helm-config.yaml
-    # worker.vm.provision "Copy Cilium Config", type: "shell", inline: "sudo cp /tmp/rke2-cilium-helm-config.yaml /var/lib/rancher/rke2/server/manifests/rke2-cilium-helm-config.yaml"
-    # install RKE2
-    worker.vm.provision "Install RKE2", type: "shell", inline: <<~SHELL
-      sudo mkdir -p /etc/rancher/rke2
-      cat <<-EOF > /etc/rancher/rke2/config.yaml
-        server: https://#{server_ip}:9345
-        token: #{token}
-EOF
-      curl -sfL https://get.rke2.io | sudo INSTALL_RKE2_CHANNEL=latest INSTALL_RKE2_TYPE="agent" sh -
-      sudo systemctl enable rke2-agent.service --now
-    SHELL  
+      # firewall configuration
+      worker.vm.provision "shell", path: "./scripts/firewall.sh"
+      # storage configuration
+      worker.vm.provision "shell", path: "./scripts/storage.sh"
+      # install RKE2
+      worker.vm.provision :shell, :path => "./scripts/install_rke2.sh", :args => [server_ip, token, "agent"]
     end
   end
 end
