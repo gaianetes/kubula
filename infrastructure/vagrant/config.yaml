@@ -20,7 +20,7 @@ network:
   private_nic_type: 82545EM
   netmask: 255.255.255.0
   base_ip: 10.42.0
-  cni: calico
+  cni: none
 k9s:
   version: v0.32.4
   install: true
