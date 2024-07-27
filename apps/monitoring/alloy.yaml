@@ -1,0 +1,23 @@
+# Application to point to charts/alloy
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: alloy
+  namespace: argocd
+spec:
+  project: monitoring
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  source:
+    repoURL: 'https://github.com:gaianetes/kubula.git'
+    targetRevision: HEAD
+    path: apps/monitoring/alloy
+    helm:
+      releaseName: alloy
+      valueFiles:
+      - "alloy.values.yaml"
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

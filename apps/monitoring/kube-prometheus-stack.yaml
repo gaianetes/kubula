@@ -1,0 +1,43 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+  name: kube-prometheus-stack
+  namespace: argocd
+spec:
+  destination:
+    namespace: monitoring
+    server: https://kubernetes.default.svc
+  project: monitoring
+  source:
+    chart: kube-prometheus-stack
+    helm:
+      values: |-
+        namespaceOverride: "monitoring"
+        crds:
+          enabled: false
+        grafana:
+          enabled: false
+        kube-state-metrics:
+          namespaceOverride: "monitoring"
+        prometheus:
+          enabled: false
+        prometheus-node-exporter:
+          namespaceOverride: "monitoring"
+        prometheusOperator:
+          enabled: false
+        alertmanager:
+          enabled: false
+        # diable scraping kube-proxy as Cilium/eBPF replaces it
+        kubeProxy:
+          enabled: false
+        nodeExporter:
+          enabled: false
+    repoURL: https://prometheus-community.github.io/helm-charts
+    targetRevision: 61.1.0
+  syncPolicy:
+    syncOptions:
+    - ServerSideApply=true
+    - CreateNamespace=true
+    - Replace=true

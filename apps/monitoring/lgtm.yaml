@@ -1,0 +1,53 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: lgtm
+  namespace: argocd
+spec:
+  generators:
+  - matrix:
+      generators:
+      # use all clusters, should use labels
+      - clusters: {}
+          # selector:
+          #   matchLabels:
+          #     smigula.io/plg: enabled
+      - list:
+          elements:
+            - appName: mimir-distributed
+              version: 5.4.0
+            - appName: loki
+              version: 6.7.1
+            - appName: tempo
+              version: 1.10.0
+            - appName: grafana
+              version: 11.3.9
+            - appName: beyla
+              version: 1.2.0
+  template:
+    metadata:
+      name: "{{appName}}"
+      annotations:
+        argocd.argoproj.io/manifest-generate-paths: ".;.."
+    spec:
+      project: monitoring
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: monitoring
+      source:
+        repoURL: https://grafana.github.io/helm-charts
+        targetRevision: "{{version}}"
+        helm:
+          # Release name override (defaults to application name)
+          releaseName: "{{appName}}"
+          valueFiles:
+          - "{{appName}}.values.yaml"
+          # - "../../values/{{name}}/{{appName}}/values.yaml"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - ServerSideApply=true
+          - CreateNamespace=true
+          - Replace=true
