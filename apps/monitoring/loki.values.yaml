@@ -1,0 +1,22 @@
+loki:
+  global:
+    dnsService: "rke2-coredns-rke2-coredns"
+  loki:
+    podAnnotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "3100"
+    # https://grafana.com/docs/loki/latest/configure/#aws_storage_config
+    storageConfig:
+      tsdb_shipper:
+        active_index_directory: /loki/index
+        cache_location: /loki/index_cache
+        cache_ttl: 24h 
+    schemaConfig:
+      configs:
+        - from: 2020-09-07
+          store: boltdb-shipper
+          object_store: aws
+          schema: v11
+          index:
+            prefix: loki_index_
+            period: 24h
