@@ -19,6 +19,10 @@ spec:
         enabled: true
         global:
           dnsService: "rke2-coredns-rke2-coredns"
+        gateway:
+          nginx:
+            config:
+              resolver: rke2-coredns-rke2-coredns
         minio:
           enabled: true
         distributor:
