@@ -10,7 +10,7 @@ spec:
     server: https://kubernetes.default.svc
     namespace: monitoring
   source:
-    repoURL: https://mimir.github.io/helm-charts
+    repoURL: https://grafana.github.io/helm-charts
     targetRevision: 5.4.0
     chart: mimir-distributed
     helm:

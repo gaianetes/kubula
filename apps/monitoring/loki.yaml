@@ -5,7 +5,7 @@ metadata:
   name: loki
   namespace: argocd
 spec:
-  project: monitoring
+  project: default
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring
@@ -13,15 +13,11 @@ spec:
     repoURL: https://grafana.github.io/helm-charts
     targetRevision: 6.7.3
     chart: loki
-    helm:
-      releaseName: loki
-      values: |-
-        global:
-          dnsService: "rke2-coredns-rke2-coredns"
-        loki:
-          podAnnotations:
-            prometheus.io/scrape: "true"
-            prometheus.io/port: "3100"
+    # helm:
+    #   releaseName: loki
+    #   values: |-
+    #     global:
+    #       dnsService: "rke2-coredns-rke2-coredns"
   syncPolicy:
     automated:
       prune: true
