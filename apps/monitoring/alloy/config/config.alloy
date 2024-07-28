@@ -192,8 +192,8 @@ otelcol.receiver.otlp "receiver" {
     disable_high_cardinality_metrics = true
   }
 
-  grpc {
-    endpoint = "http://alloy-cluster:12345"
+  http {
+	endpoint = "http://example-hotrod.example-hotrod.svc.cluster.local:8080"
   }
   output {
     traces = [otelcol.exporter.otlp.default.input]
