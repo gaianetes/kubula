@@ -11,12 +11,21 @@ spec:
     namespace: monitoring
   source:
     repoURL: 'https://github.com:gaianetes/kubula.git'
-    targetRevision: HEAD
+    targetRevision: feature/update-install-script
     path: apps/monitoring/alloy
     helm:
       releaseName: alloy
-      valueFiles:
-      - "alloy.values.yaml"
+      values: |-
+        alloy:
+          clustering:
+            enabled: true
+          mounts:
+            varlog: true
+            dockercontainers: true
+          configMap:
+            create: true
+      # valueFiles:
+      # - "alloy.values.yaml"
   syncPolicy:
     automated:
       prune: true

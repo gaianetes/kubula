@@ -1,0 +1,50 @@
+# Application to point to charts/alloy
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mimir-distributed
+  namespace: argocd
+spec:
+  project: monitoring
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  source:
+    repoURL: https://mimir.github.io/helm-charts
+    targetRevision: 5.4.0
+    chart: mimir-distributed
+    helm:
+      releaseName: mimir-distributed
+      values: |-
+        enabled: true
+        global:
+          dnsService: "rke2-coredns-rke2-coredns"
+        minio:
+          enabled: true
+        distributor:
+          replicas: 2
+        ingester:
+          persistentVolume:
+            enabled: true
+            size: 20Gi
+        mimir:
+            limits:
+              max_global_series_per_user: 20000000
+              ingestion_rate: 200000
+              ingestion_burst_size: 1000000
+              out_of_order_time_window: 5m
+        metaMonitoring:
+          dashboards:
+            enabled: true
+          serviceMonitor:
+            enabled: true
+            clusterLabel: "smigstack"
+            namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    # syncOptions:
+    #   - ServerSideApply=true
+    #   - CreateNamespace=true
+    #   - Replace=true

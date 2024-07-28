@@ -1,0 +1,24 @@
+# Application to point to charts/alloy
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: beyla
+  namespace: argocd
+spec:
+  project: monitoring
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    targetRevision: 1.2.0
+    chart: beyla
+    helm:
+      releaseName: beyla
+      values: |-
+        global:
+          dnsService: "rke2-coredns-rke2-coredns"
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
