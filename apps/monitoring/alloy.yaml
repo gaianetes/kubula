@@ -5,12 +5,12 @@ metadata:
   name: alloy
   namespace: argocd
 spec:
-  project: monitoring
+  project: default
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring
   source:
-    repoURL: 'https://github.com:gaianetes/kubula.git'
+    repoURL: 'https://github.com/gaianetes/kubula.git'
     targetRevision: feature/update-install-script
     path: apps/monitoring/alloy
     helm:
