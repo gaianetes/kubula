@@ -176,13 +176,13 @@ loki.process "pods" {
 
 loki.write "default" {
 	endpoint {
-		url = "http://lgtm-distributed-loki-gateway/loki/api/v1/push"
+		url = "http://loki-loki-distributed-gateway/loki/api/v1/push"
 	}
 }
 
 prometheus.remote_write "mimir" {
 	endpoint {
-		url     = "http://lgtm-distributed-mimir-nginx.monitoring.svc.cluster.local/api/v1/push"
+		url     = "http://mimir-distributed-nginx.monitoring.svc.cluster.local/api/v1/push"
 	}
 }
 
@@ -203,6 +203,6 @@ otelcol.receiver.otlp "receiver" {
 
 otelcol.exporter.otlp "default" {
   client {
-    endpoint = "http://lgtm-distributed-tempo-distributor.monitoring.svc.cluster.local:3100"
+    endpoint = "http://tempo:4317"
   }
 }
