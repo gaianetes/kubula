@@ -31,6 +31,8 @@ spec:
           persistentVolume:
             enabled: true
             size: 20Gi
+          extraArgs:
+          - "-ingester.max-global-series-per-user": 20000000
         mimir:
             limits:
               max_global_series_per_user: 20000000
