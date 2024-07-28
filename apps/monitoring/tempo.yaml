@@ -10,7 +10,7 @@ spec:
     server: https://kubernetes.default.svc
     namespace: monitoring
   source:
-    repoURL: https://tempo.github.io/helm-charts
+    repoURL: https://grafana.github.io/helm-charts
     targetRevision: 1.10.0
     chart: tempo
     helm:
