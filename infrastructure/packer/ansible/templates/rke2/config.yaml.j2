@@ -1,0 +1,21 @@
+write-kubeconfig-mode: "0644"
+# profile: "cis-1.5"
+selinux: false
+# add ips/hostname of hosts and loadbalancer
+tls-sans:
+  - "{{ rke2_cluster_name }}.kubula.internal"
+  - "{{ network_static_ip }}"
+# Make a etcd snapshot every day at 4am
+etcd-snapshot-schedule-cron: "0 4 * * *"
+# Keep 14 etcd snapshots
+etcd-snapshot-retention: 14
+etcd-expose-metrics: true
+disable:
+  - rke2-canal
+  - rke2-kube-proxy
+cni:
+  - cilium
+disable-kube-proxy: true
+disable-cloud-controller: true
+cluster-cidr: {{ rke2_cluster_cidr }}
+service-cidr: {{ rke2_service_cidr }}

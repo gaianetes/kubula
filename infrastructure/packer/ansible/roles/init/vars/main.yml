@@ -21,3 +21,6 @@ init_packages:
 - nfs-utils
 - redhat-lsb-core.x86_64
 - frr
+init_install_kubectl: true
+init_install_k9s: true
+init_k9s_version: "v0.32.5"
