@@ -3,10 +3,12 @@
   community.general.modprobe:
     name: br_netfilter
     state: present
+
 - name: Load overlay module
   community.general.modprobe:
     name: overlay
     state: present
+
 - name: Enable br_netfilter module
   ansible.posix.sysctl:
     name: net.bridge.bridge-nf-call-iptables
@@ -14,6 +16,7 @@
     state: present
     sysctl_set: true
     reload: false
+
 - name: Enable bridge netfilter for IPv6
   ansible.posix.sysctl:
     name: net.bridge.bridge-nf-call-ip6tables
@@ -21,6 +24,7 @@
     state: present
     sysctl_set: true
     reload: false
+
 - name: Enalbe bridge netfilter for IPv4
   ansible.posix.sysctl:
     name: net.bridge.bridge-nf-call-iptables
@@ -28,6 +32,7 @@
     state: present
     sysctl_set: true
     reload: false
+
 - name: Enable ip forwarding
   ansible.posix.sysctl:
     name: net.ipv4.ip_forward
@@ -35,33 +40,34 @@
     state: present
     sysctl_set: true
     reload: true
-  become: true
+
 - name: Allow TCP ports
   firewalld:
     port: "{{ item }}/tcp"
     state: enabled
     permanent: true
   with_items: "{{ network_allowed_tcp_ports }}"
-  become: true
+
 - name: Allow UDP ports
   firewalld:
     port: "{{ item }}/udp"
     state: enabled
     permanent: true
   with_items: "{{ network_allowed_udp_ports }}"
-  become: true
+
 - name: Reload firewalld
   ansible.builtin.service:
     name: firewalld
     state: restarted
-  become: true
+
 - name: Enable masquerade
   firewalld:
     masquerade: true
     state: enabled
     permanent: true
-  become: true
+
 - name: Enable HTTP
+
   firewalld:
     service: http
     permanent: true
@@ -71,16 +77,19 @@
     service: https
     permanent: true
     state: enabled
+
 - name: Remove ICMP Block for echo-request
   firewalld:
     icmp_block: "echo-request"
     state: disabled
     permanent: true
+
 - name: Remove ICMP Block for echo-reply
   firewalld:
     icmp_block: "echo-reply"
     state: disabled
     permanent: true
+
 - name: Create /etc/NetworkManager/conf.d/rke2-canal.conf
   ansible.builtin.copy:
     content: |
@@ -90,7 +99,7 @@
     owner: root
     group: root
     mode: "0644"
-  become: true
+
 - name: Create /etc/sysconfig/network-scripts/ifcfg-eth0
   ansible.builtin.copy:
     content: |
@@ -106,9 +115,9 @@
     owner: root
     group: root
     mode: "0644"
-  become: true
+
 - name: Restart network
   ansible.builtin.service:
     name: NetworkManager
     state: restarted
-  become: true
+

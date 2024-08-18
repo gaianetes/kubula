@@ -1,13 +1,23 @@
 ---
+- name: Determine if Cilium CLI is installed
+  ansible.builtin.command:
+    cmd: "which cilium"
+  register: cilium_cli_installed
+  failed_when: false
+  changed_when: false
+
 - name: Extract zip file from URL
   ansible.builtin.unarchive:
     src: "https://github.com/cilium/cilium-cli/releases/download/{{ cilium_cli_version }}/cilium-linux-amd64.tar.gz"
     dest: /tmp
     remote_src: true
   become: true
+  when: cilium_install
+
 - name: Move Cilium CLI binary
   ansible.builtin.copy:
     src: /tmp/cilium
     dest: /usr/local/bin
     mode: "0755"
   become: true
+  when: cilium_install

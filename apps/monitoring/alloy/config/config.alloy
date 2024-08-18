@@ -193,7 +193,7 @@ otelcol.receiver.otlp "receiver" {
   }
 
   http {
-	endpoint = "http://example-hotrod.example-hotrod.svc.cluster.local:8080"
+	endpoint = "http://example-hotrod.example-hotrod.svc.cluster.local"
   }
   output {
     traces = [otelcol.exporter.otlp.default.input]
