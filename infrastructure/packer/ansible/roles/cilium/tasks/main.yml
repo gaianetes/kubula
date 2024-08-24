@@ -1,23 +1,14 @@
----
-- name: Determine if Cilium CLI is installed
-  ansible.builtin.command:
-    cmd: "which cilium"
-  register: cilium_cli_installed
-  failed_when: false
-  changed_when: false
+- name: Ensure tmp directory exist
+  file:
+    path: "{{playbook_dir}}/files/tmp"
+    state: directory
 
-- name: Extract zip file from URL
-  ansible.builtin.unarchive:
-    src: "https://github.com/cilium/cilium-cli/releases/download/{{ cilium_cli_version }}/cilium-linux-amd64.tar.gz"
-    dest: /tmp
-    remote_src: true
-  become: true
+- name: Install Cilium CLI
+  include_tasks: cli.yaml
   when: cilium_install
 
-- name: Move Cilium CLI binary
-  ansible.builtin.copy:
-    src: /tmp/cilium
-    dest: /usr/local/bin
-    mode: "0755"
-  become: true
-  when: cilium_install
+# include tasks from config
+- name: Configure Cilium
+  include_tasks: config.yaml
+  when: cilium_install and cilium_master
+

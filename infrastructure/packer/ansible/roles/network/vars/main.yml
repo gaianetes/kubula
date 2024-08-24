@@ -1,4 +1,5 @@
 ---
+network_set_static: false
 network_static_ip: "192.168.1.100"
 network_static_gateway: "192.168.1.1"
 network_static_dns1: "192.168.1.6"

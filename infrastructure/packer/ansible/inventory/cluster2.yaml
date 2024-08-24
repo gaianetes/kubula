@@ -1,0 +1,17 @@
+k8s-cluster:
+  hosts:
+    cluster2:
+      ansible_hostname: 192.168.1.101
+      k8s_hostname: cluster2.smigula.interal
+      ansible_ssh_user: rke2
+      ansible_become: yes
+      rke2_cluster_name: "cluster2"
+      # Kubernetes POD network for Cilium
+      rke2_cluster_cidr: 10.245.0.0/16
+      # Kubernetes SERVICE network for Cilium
+      rke2_service_cidr: 10.97.0.0/18
+      cilium_mesh_cluster_id: "02"
+      cilium_apiserver_port: 32380
+      cilium_peer_apiserver_port: 32379
+      cilium_peer_cluster_name: cluster1 
+      cilium_peer_cluster_address: cluster1.smigula.interal

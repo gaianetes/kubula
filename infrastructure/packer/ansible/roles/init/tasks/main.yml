@@ -9,6 +9,7 @@
     path: "/home/{{ init_user_name }}/.bashrc"
     line: "alias vi='vim'"
     state: present
+
 - name: Create vim configuration file
   ansible.builtin.file:
     path: "/home/{{ init_user_name }}/.vimrc"
@@ -16,6 +17,7 @@
     owner: "{{ init_user_name }}"
     group: "{{ init_user_name }}"
     mode: "0644"
+
 - name: Configure vim
   ansible.builtin.blockinfile:
     path: "/home/{{ init_user_name }}/.vimrc"
@@ -27,6 +29,7 @@
       highlight Comment ctermfg=LightCyan
     marker: ""
     state: present
+
 - name: Disable GSSAPIAuthentication
   become: true
   ansible.builtin.lineinfile:
@@ -34,6 +37,13 @@
     regexp: "^GSSAPIAuthentication"
     line: "GSSAPIAuthentication no"
     state: present
+
+- name: Update DNF
+  become: true
+  ansible.builtin.dnf:
+    name: "*"
+    state: latest
+
 - name: Update CA bundle (Rocky)
   become: true
   ansible.builtin.get_url:
@@ -42,24 +52,28 @@
     force: true
     mode: "0644"
   when: ansible_distribution == "Rocky"
+
 - name: Install epel repo (Rocky)
   become: true
   ansible.builtin.dnf:
     name: "epel-release"
     state: latest
   when: ansible_distribution == "Rocky"
+
 - name: Upgrade all packages (Rocky)
   become: true
   ansible.builtin.dnf:
     name: "*"
     state: latest
   when: ansible_distribution == "Rocky"
+
 - name: Install packages (Rocky)
   become: true
   ansible.builtin.dnf:
     name: "{{ init_packages }}"
     state: latest
   when: ansible_distribution == "Rocky"
+
 - name: Autoremove DNF packages
   become: true
   ansible.builtin.dnf:

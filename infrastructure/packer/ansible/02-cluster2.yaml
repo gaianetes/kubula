@@ -1,0 +1,25 @@
+---
+
+- name: Setting up the infrastructure
+  # become: true
+  hosts: localhost
+  gather_facts: yes
+  roles:
+    - role: init
+    # - role: kernel
+    - role: network
+      become: true
+    - role: storage
+    - role: cilium
+    - role: rke2
+  vars:
+    rke2_role: server
+    rke2_cluster_name: "cluster2-controlplane1"
+    rke2_cluster_cidr: 10.43.0.0/16
+    rke2_service_cidr: 10.97.0.0/16
+    cilium_cli_version: "v0.16.15"
+    network_static_ip: "192.168.1.101"
+    network_static_prefix: "22"
+    network_static_gateway: "192.168.1.1"
+    network_static_dns1: "192.168.1.6"
+    network_static_dns2: "8.8.8.8"

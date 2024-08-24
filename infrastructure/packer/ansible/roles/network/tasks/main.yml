@@ -101,6 +101,7 @@
     mode: "0644"
 
 - name: Create /etc/sysconfig/network-scripts/ifcfg-eth0
+  when: network_set_static
   ansible.builtin.copy:
     content: |
       DEVICE=eth0
