@@ -1,0 +1,94 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: rke2-cilium
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    tls:
+      ca:
+        cert: {{ cilium_ca }}
+        key: {{ cilium_ca_key }}
+    bpf:
+      masquerade: true
+    cluster:
+      name: {{ cluster_name }}
+      id: {{ cilium_mesh_cluster_id }}
+    prometheus:
+      enabled: {{ cilium_prometheus_enabled }}
+      serviceMonitor:
+        enabled: {{ cilium_prometheus_service_monitor_enabled }}
+    dashboards:
+      enabled: {{ cilium_dashboards_enabled }}
+    hubble:
+      enabled: {{ cilium_hubble_enabled }}
+      metrics:
+        enabled:
+        - dns:query;ignoreAAAA
+        - drop
+        - tcp
+        - flow
+        - icmp
+        - http
+        dashboards:
+          enabled: {{ cilium_hubble_metrics_dashboards_enabled }}
+        serviceMonitor:
+          enabled: {{ cilium_hubble_metrics_service_monitor_enabled }}
+      relay:
+        enabled: {{ cilium_hubble_relay_enabled }}
+        prometheus:
+          enabled: {{ cilium_hubble_relay_prometheus_enabled }}
+          serviceMonitor:
+            enabled: {{ cilium_hubble_relay_service_monitor_enabled }}
+      ui:
+        enabled: {{ cilium_hubble_ui_enabled }}
+        baseUrl: {{ cilium_hubble_ui_base_url }}
+    version: {{ cilium_cilium_version }}
+    operator:
+      replicas: 1
+      prometheus:
+        enabled: {{ cilium_operator_prometheus_enabled }}
+        serviceMonitor:
+          enabled: {{ cilium_operator_prometheus_service_monitor_enabled }}
+      dashboards:
+        enabled: {{ cilium_operator_dashboards_enabled }}
+    envoy:
+      prometheus:
+        enabled: {{ cilium_envoy_prometheus_enabled }}
+        serviceMonitor:
+          enabled: {{ cilium_envoy_prometheus_service_monitor_enabled }}
+        service:
+          type: NodePort
+          nodePort: {{ cilium_apiserver_port }}
+        tls:
+          authMode: cluster
+          server:
+            extraDnsNames:
+              - "*.{{ cilium_default_domain }}"
+    clustermesh:
+      apiserver:
+        metrics:
+          enabled: {{ cilium_clustermesh_apiserver_metrics_enabled }}
+          serviceMonitor:
+            enabled: {{ cilium_clustermesh_apiserver_service_monitor_enabled }}
+      config:
+        enabled: true
+        domain: {{ cilium_default_domain }}
+        clusters:
+          - name: {{ cilium_peer_cluster_name }}
+            address: {{ cilium_peer_cluster_address }}
+            port: {{ cilium_peer_apiserver_port }}
+      useAPIServer: true
+    kubeProxyReplacement: {{ cilium_kube_proxy_replacement }}
+    ipam:
+      mode: "cluster-pool"
+      operator:
+        clusterPoolIPv4PodCIDRList: 
+          - "{{ cilium_pod_network_cidr }}"
+        clusterPoolIPv4MaskSize: 24 
+    socketLB:
+      hostNamespaceOnly: {{ cilium_socket_lb_host_namespace_only }}
+    ipv4:
+      enabled: true
+    nodePort:
+      enabled: true

@@ -1,0 +1,17 @@
+---
+
+- name: Setting up the infrastructure
+  # become: true
+  hosts: localhost
+  gather_facts: yes
+  roles:
+    - role: init
+    # - role: kernel
+    - role: network
+      become: true
+    - role: storage
+    - role: cilium
+    - role: rke2
+  vars:
+    rke2_cluster_name: "cilium-demo-cluster1"
+    cilium_cli_version: "v0.16.15"

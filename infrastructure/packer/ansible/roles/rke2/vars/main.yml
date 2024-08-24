@@ -5,7 +5,7 @@ rke2_version: v1.30.3+rke2r1
 rke2_images_url: https://github.com/rancher/rke2/releases/download/v1.30.3%2Brke2r1/rke2.linux-amd64.tar.gz
 rke2_artifacts_path: "/vagrant/dist/artifacts/"
 rke2_download_images: true
-rke2_cluster_name: cluster2-controlplane1
+rke2_cluster_name: cluster2
 rke2_prometheus_enabled: true
 rke2_prometheus_service_monitor_enabled: false
 rke2_dashboards_enabled: true
@@ -32,3 +32,4 @@ rke2_ipam_mode: kubernetes
 rke2_socket_lb_host_namespace_only: true
 rke2_bgp_control_plane_enabled: true
 rke2_hubble_enabled: true
+rke2_cluster_id: 01

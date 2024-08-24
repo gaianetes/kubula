@@ -1,0 +1,27 @@
+k8s-cluster:
+  hosts:
+    c1cp1:
+      ansible_hostname: 192.168.1.100
+      cilium_k8s_hostname: controlplane.cilium-demo-cluster1.smigula.interal
+      ansible_become: yes
+      rke2_cluster_name: "cilium-demo-cluster1"
+      rke2_role: server
+      rke2_cluster_cidr: 10.245.0.0/16
+      rke2_service_cidr: 10.97.0.0/18
+      cilium_mesh_cluster_id: "01"
+      cilium_apiserver_port: 32380
+      cilium_peer_apiserver_port: 32379
+      cilium_peer_cluster_name: cilium-demo-cluster2 
+      cilium_peer_cluster_address: cilium-demo-cluster2.smigula.internal
+    c1w1:
+      ansible_hostname: 192.168.1.101
+      ansible_become: yes
+      rke2_cluster_name: "cilium-demo-cluster1"
+      rke2_role: agent
+      rke2_server_address: "192.168.1.100"
+    c1w2:
+      ansible_hostname: 192.168.1.102
+      ansible_become: yes
+      rke2_cluster_name: "cilium-demo-cluster1"
+      rke2_role: agent
+      rke2_server_address: "192.168.1.100"
