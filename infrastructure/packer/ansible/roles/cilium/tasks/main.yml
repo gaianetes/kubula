@@ -1,14 +1,12 @@
-- name: Ensure tmp directory exist
-  file:
-    path: "{{playbook_dir}}/files/tmp"
-    state: directory
+- name: Debug rke2_role value
+  debug:
+    msg: "The value of rke2_role is: {{ rke2_role }}"
 
 - name: Install Cilium CLI
   include_tasks: cli.yaml
-  when: cilium_install
+  when: rke2_role == "server" and cilium_install
 
 # include tasks from config
 - name: Configure Cilium
   include_tasks: config.yaml
-  when: cilium_install and cilium_master
-
+  when: rke2_role == "server"

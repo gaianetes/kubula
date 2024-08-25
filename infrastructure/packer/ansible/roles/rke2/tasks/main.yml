@@ -42,9 +42,9 @@
   ansible.builtin.get_url:
     url: "{{ rke2_images_url }}"
     dest: /var/lib/rancher/rke2/agent/images
-  when: rke2_download_images == true
+  when: rke2_download_images
 
-- name: Create /etc/rancher/rke2/ directory
+- name: Create /etc/rancher/rke2 directory
   when: rke2_role == "server"
   become: true
   ansible.builtin.file:
@@ -52,81 +52,44 @@
     state: directory
     mode: '0755'
 
-# Create static manifests directory
-- name: Create /var/lib/rancher/rke2/server/manifests/ directory
-  when: rke2_role == "server"
-  become: true
-  ansible.builtin.file:
-    path: /var/lib/rancher/rke2/server/manifests/
-    state: directory
-    mode: '0755'
-
-# create random token to use with rke2 and set fact
-- name: Create random token
+- name: Set token as fact
   set_fact:
-    rke2_token: "{{ lookup('password', '/dev/null length=32 chars=ascii_letters,digits') }}"
-  when: rke2_role == "server"
-
-- name: Create config.yaml with RKE2 configuration
-  become: true
-  template:
-    src: templates/rke2/config.yaml.j2
-    dest: /etc/rancher/rke2/config.yaml
-    mode: '0644'
-  when: rke2_role == "server"
-
-# create worker config
-- name: Create worker config.yaml with RKE2 configuration
-  become: true
-  template:
-    src: templates/rke2/worker-config.yaml.j2
-    dest: /etc/rancher/rke2/config.yaml
-    mode: '0644'
+    rke2_token: "{{ lookup('file', '{{ playbook_dir }}/files/tmp/{{ rke2_cluster_name }}-token') }}"
   when: rke2_role == "agent"
 
-# - name: Create Cilium HelmConfig
-#   become: true
-#   template:
-#     src: templates/rke2/cilium-helm-config.yaml.j2
-#     dest: /var/lib/rancher/rke2/server/manifests/rke2-cilium-config.yaml
-#     mode: '0644'
-#   when: rke2_role == "server"
-
-# Check if file exists: files/tmp/rke2-cilium-config.yaml
-- name: Check if Cilium HelmConfig exists
-  ansible.builtin.stat:
-    path: files/tmp/rke2-cilium-config.yaml
-  register: cilium_helm_config_stat
-
-# Copy Cilium HelmConfig to server
-- name: Copy Cilium HelmConfig to server
+- name: Create RKE2 config
   become: true
-  ansible.builtin.copy:
-    src: files/tmp/rke2-cilium-config.yaml
-    dest: /var/lib/rancher/rke2/server/manifests/rke2-cilium-config.yaml
+  template:
+    src: "templates/rke2/{{ rke2_role }}-config.yaml.j2"
+    dest: /etc/rancher/rke2/config.yaml
     mode: '0644'
-  when: rke2_role == "server" and cilium_helm_config_stat.stat.exists
+
+# Copy Cilium values to server
+- name: Copy Cilium Values to server
+  # delegate_to: localhost
+  ansible.builtin.copy:
+    src: "files/tmp/{{ rke2_cluster_name }}-cilium-values.yaml"
+    dest: "/home/{{ init_user_name }}/cilium-values.yaml"
+    mode: '0644'
+  when: rke2_role == "server"
+
+# debig rke2_role
+- name: Debug rke2_role
+  debug:
+    msg: "RKE2 Install Command: curl -sfL https://get.rke2.io | sudo INSTALL_RKE2_CHANNEL=latest INSTALL_RKE2_VERSION={{ rke2_version }} INSTAL_RKE2_TYPE={{ rke2_role }} sh -"
 
 # Install RKE2
 - name: Install RKE2
   become: true
   ansible.builtin.shell:
-    cmd: "curl -sfL https://get.rke2.io | sudo INSTALL_RKE2_CHANNEL=latest INSTALL_RKE2_VERSION={{ rke2_version }} INSTAL_RKE2-TYPE={{ rke2_role }} sh -"
+    cmd: "curl -sfL https://get.rke2.io | sudo INSTALL_RKE2_CHANNEL=latest INSTALL_RKE2_VERSION={{ rke2_version }} INSTALL_RKE2_TYPE={{ rke2_role }} sh -"
 
-- name: Store Join Token
+# add rke-* to exclude in dnf
+- name: Add rke-* to exclude in dnf
   become: true
-  # save token in files/tmp/token
-  ansible.builtin.copy:
-    content: "/var/lib/rancher/rke2/server/node-token"
-    dest: files/tmp/token
-  when: rke2_role == "server"
-
-- name: Store kubeconfig
-  become: true
-  ansible.builtin.copy:
-    content: "/etc/rancher/rke2/rke2.yaml"
-    dest: files/tmp/kubeconfig
-  when: rke2_role == "server"
+  ansible.builtin.lineinfile:
+    path: /etc/dnf/dnf.conf
+    line: "exclude=rke-*"
 
 - name: Start RKE2
   become: true
@@ -135,8 +98,71 @@
     state: started
     enabled: yes
 
+- name: Save token to tmp directory
+  become: true
+  ansible.builtin.shell:
+    cmd: "sudo cp /var/lib/rancher/rke2/server/node-token /home/{{ init_user_name }}/token"
+  when: rke2_role == "server"
+
+- name: Change owner of token
+  become: true
+  ansible.builtin.shell:
+    cmd: "sudo chown {{ init_user_name }}:{{ init_user_name }} /home/{{ init_user_name }}/token"
+  when: rke2_role == "server"
+
+# Download the token from /home/{{ init_user_name }}/token to local Ansible Control Machine
+- name: Download token from server
+  ansible.builtin.slurp:
+    src: "/home/{{ init_user_name }}/token"
+  register: token
+  when: rke2_role == "server"
+
+- name: Set token as fact
+  set_fact:
+    rke2_token: "{{ token['content'] | b64decode }}"
+  when: rke2_role == "server"
+
+# Save the token to the local Ansible Control Machine
+- name: Save token to tmp directory
+  delegate_to: localhost
+  ansible.builtin.copy:
+    content: "{{ rke2_token }}"
+    dest: "{{playbook_dir}}/files/tmp/{{ rke2_cluster_name }}-token"
+  when: rke2_role == "server"
+
+# output token
+- name: Output token
+  debug:
+    msg: "Token: {{ rke2_token }}"
+  when: rke2_role == "server"
+
 - name: Copy kubeconfig to user home
   become: true
   ansible.builtin.shell:
     cmd: "sudo cp /etc/rancher/rke2/rke2.yaml /home/{{ init_user_name }}/.kube/config && sudo chown {{ init_user_name }}:{{ init_user_name }} /home/{{ init_user_name }}/.kube/config"
+  when: rke2_role == "server"
+
+- name: Download kubeconfig from server
+  ansible.builtin.slurp:
+    src: "/home/{{ init_user_name }}/.kube/config"
+  register: kubeconfig
+  when: rke2_role == "server"
+
+- name: Set kubeconfig as fact
+  set_fact:
+    kubeconfig: "{{ kubeconfig['content'] | b64decode }}"
+  when: rke2_role == "server"
+
+# Save the token to the local Ansible Control Machine
+- name: Save kubeconfig to tmp directory
+  delegate_to: localhost
+  ansible.builtin.copy:
+    content: "{{ kubeconfig }}"
+    dest: "{{playbook_dir}}/files/tmp/{{ rke2_cluster_name }}-kubeconfig"
+  when: rke2_role == "server"
+
+# Install Cilium
+- name: Install Cilium
+  ansible.builtin.shell:
+    cmd: "cilium install -f /home/{{ init_user_name }}/cilium-values.yaml"
   when: rke2_role == "server"

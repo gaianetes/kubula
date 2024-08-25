@@ -1,4 +1,27 @@
----
+- name: Ensure tmp directory exist
+  ansible.builtin.file:
+    path: "{{playbook_dir}}/files/tmp"
+    state: directory
+  delegate_to: localhost
+
+# create ~/.local/bin directory
+- name: Create ~/.local/bin directory
+  ansible.builtin.file:
+    path: "/home/{{ init_user_name }}/.local/bin"
+    state: directory
+    mode: '0755'
+    owner: "{{ init_user_name }}"
+    group: "{{ init_user_name }}"
+
+# Create .bashrc file for rke2 user
+- name: Create .bashrc file for rke2 user
+  ansible.builtin.file:
+    path: "/home/{{ init_user_name }}/.bashrc"
+    state: touch
+    owner: "{{ init_user_name }}"
+    group: "{{ init_user_name }}"
+    mode: "0644"
+
 - name: Colorize user shell prompt
   ansible.builtin.lineinfile:
     path: "/home/{{ init_user_name }}/.bashrc"
@@ -60,6 +83,13 @@
     state: latest
   when: ansible_distribution == "Rocky"
 
+# enable epel repo
+- name: Enable epel repo (Rocky)
+  become: true
+  ansible.builtin.shell:
+    cmd: "dnf config-manager --set-enabled epel"
+  when: ansible_distribution == "Rocky"
+
 - name: Upgrade all packages (Rocky)
   become: true
   ansible.builtin.dnf:
@@ -78,6 +108,12 @@
   become: true
   ansible.builtin.dnf:
     autoremove: true
+
+- name: Clean DNF cache
+  become: true
+  ansible.builtin.shell:
+    cmd: "dnf clean all"
+
 # - name: Create rke2 user
 #   ansible.builtin.user:
 #     name: "{{ init_user_name }}"
@@ -89,10 +125,11 @@
 #     password: "{{ init_user_password }}"
 #   when: init_user_name is defined
 
-- name: Disable swap
-  ansible.builtin.command:
-    cmd: "swapoff -a"
-  become: true
+
+# - name: Disable swap
+#   ansible.builtin.command: "swapoff -a"
+#   become: true
+#   notify: Reboot if needed
 
 - name: Remove swap line from /etc/fstab
   become: true
@@ -101,15 +138,28 @@
     regexp: '^.*swap.*$'
     state: absent
 
-- name: Set SELinux to permissive
-  ansible.builtin.selinux:
-    policy: targeted
-    state: permissive
+- name: Ensure no swap is present in /etc/fstab
+  mount:
+    name: swap
+    state: absent
+    fstype: swap
+
+# - name: Set SELinux to permissive
+#   ansible.posix.selinux:
+#     policy: targeted
+#     state: permissive
+#   become: true
+
+- name: setenforce 0
   become: true
+  ansible.builtin.shell:
+    cmd: "setenforce 0"
+
 - name: Update sysconfig selinux
   become: true
   ansible.builtin.shell:
     cmd: "sed -i 's/SELINUX=enforcing/SELINUX=permissive/g' /etc/selinux/config"
+  # notify: Reboot if needed
 
 # Create kubectl repo
 - name: Create kubectl repo
@@ -126,6 +176,14 @@
   become: true
   when: init_install_kubectl
 
+# Determine if kubectl is installed
+- name: Determine if kubectl is installed
+  ansible.builtin.command:
+    cmd: "which kubectl"
+  register: kubectl_installed
+  failed_when: false
+  changed_when: false
+
 # Install kubectl
 - name: Install kubectl
   ansible.builtin.dnf:
@@ -133,7 +191,7 @@
     state: latest
     disable_excludes: kubernetes
   become: true
-  when: init_install_kubectl
+  when: init_install_kubectl and kubectl_installed.rc != 0
 
 # Add alias for kubectl
 - name: Create kube directory
@@ -145,13 +203,18 @@
     mode: "0755"
   when: init_install_kubectl
 
-# Add Kubectl alias
-- name: Add alias k=kubectl to .bashrc
-  ansible.builtin.lineinfile:
-    path: "/home/{{ init_user_name }}/.bashrc"
-    regexp: '^alias k=kubectl$'
-    line: 'alias k=kubectl'
-    state: present
+- name: Ensure ~/.bashrc.d directory exists
+  file:
+    path: "{{ ansible_env.HOME }}/.bashrc.d"
+    state: directory
+    mode: '0755'
+
+- name: Create a Kubernetes alias file in ~/.bashrc.d/
+  ansible.builtin.copy:
+    dest: "{{ ansible_env.HOME }}/.bashrc.d/kubernetes_aliases"
+    content: |
+      alias k=kubectl
+    mode: '0644'
 
 # Install k9s
 - name: Determine if k9s is installed
@@ -160,6 +223,7 @@
   register: k9s_installed
   failed_when: false
   changed_when: false
+  when: init_install_k9s
 
 - name: Download k9s RPM
   ansible.builtin.get_url:
@@ -174,3 +238,9 @@
     disable_gpg_check: true
   become: true
   when: init_install_k9s and k9s_installed.rc != 0
+
+# Clean up k9s RPM
+- name: Clean up k9s RPM
+  ansible.builtin.file:
+    path: "/home/{{ init_user_name }}/k9s_linux_amd64.rpm"
+    state: absent

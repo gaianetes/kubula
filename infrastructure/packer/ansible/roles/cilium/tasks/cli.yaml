@@ -8,15 +8,39 @@
 - name: Extract zip file from URL
   ansible.builtin.unarchive:
     src: "https://github.com/cilium/cilium-cli/releases/download/{{ cilium_cli_version }}/cilium-linux-amd64.tar.gz"
-    dest: files/tmp
+    # dest: /home/{{ init_user_name }}/
+    dest: "{{ playbook_dir }}/files/tmp/"
     remote_src: true
-  become: true
-  when: cilium_cli_installed.rc != 0 and cilium_install
-
-- name: Move Cilium CLI binary
-  ansible.builtin.copy:
-    src: files/tmp/cilium
-    dest: /usr/local/bin
-    mode: "0755"
-  become: true
+  delegate_to: localhost
   when: cilium_cli_installed.rc != 0
+
+# copy cilium binary to /home/{{ init_user_name }}/cilium
+- name: Copy Cilium binary
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/files/tmp/cilium"
+    dest: "/home/{{ init_user_name }}/cilium"
+    mode: '0755'
+  when: cilium_cli_installed.rc != 0
+  # delegate_to: localhost
+
+# install cilium using install -m 0755 cilium /home/{{ init_user_name }}/.local/bin
+- name: Install Cilium CLI
+  ansible.builtin.shell:
+    cmd: "install -m 0755 /home/{{ init_user_name }}/cilium /home/{{ init_user_name }}/.local/bin"
+  when: cilium_cli_installed.rc != 0
+
+# move cilium binary to /usr/local/bin on host
+# - name: Move Cilium binary
+#   become: true
+#   ansible.builtin.copy:
+#     src: "{{ playbook_dir }}/files/tmp/cilium"
+#     dest: /usr/local/bin/cilium
+#     mode: '0755'
+#   when: cilium_cli_installed.rc != 0 and cilium_install
+#   delegate_to: localhost
+
+# - name: Move Cilium CLI binary
+#   ansible.builtin.shell:
+#     cmd: "install -m 0755 /home/{{ init_user_name }}/cilium /usr/local/bin"
+#   become: true
+#   when: cilium_cli_installed.rc != 0

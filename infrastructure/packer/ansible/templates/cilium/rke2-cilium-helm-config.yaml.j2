@@ -12,7 +12,7 @@ spec:
     bpf:
       masquerade: true
     cluster:
-      name: {{ cluster_name }}
+      name: {{ rke2_cluster_name }}
       id: {{ cilium_mesh_cluster_id }}
     prometheus:
       enabled: {{ cilium_prometheus_enabled }}
@@ -84,10 +84,10 @@ spec:
       mode: "cluster-pool"
       operator:
         clusterPoolIPv4PodCIDRList: 
-          - "{{ cilium_pod_network_cidr }}"
-        clusterPoolIPv4MaskSize: 24 
+          - "{{ rke2_cluster_cidr }}"
+        clusterPoolIPv4MaskSize: 16
     socketLB:
-      hostNamespaceOnly: {{ cilium_socket_lb_host_namespace_only }}
+      hostNamespaceOnly: true
     ipv4:
       enabled: true
     nodePort:

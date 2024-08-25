@@ -1,22 +1,22 @@
 write-kubeconfig-mode: "0644"
+# advertise-address: 192.168.1.100
 # profile: "cis-1.5"
 selinux: false
-token: {{ rke2_token }}
 # add ips/hostname of hosts and loadbalancer
 tls-sans:
   - "{{ rke2_cluster_name }}.smigula.internal"
   - "{{ network_static_ip }}"
 # Make a etcd snapshot every day at 4am
-# etcd-snapshot-schedule-cron: "0 4 * * *"
+etcd-snapshot-schedule-cron: "0 4 * * *"
 # Keep 14 etcd snapshots
-# etcd-snapshot-retention: 14
-# etcd-expose-metrics: true
-etcd-disable-snapshots: true
+etcd-snapshot-retention: 14
+etcd-expose-metrics: true
 disable:
   - rke2-canal
   - rke2-kube-proxy
-cni:
-  - cilium
+  - rke2-ingress-nginx
+network:
+  plugin: none
 disable-kube-proxy: true
 disable-cloud-controller: true
 cluster-cidr: {{ rke2_cluster_cidr }}

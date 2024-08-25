@@ -1,4 +1,24 @@
----
-cilium_install: true
+# cilium_install: true
 cilium_cli_version: "v0.16.15"
-cilium_master: false
+# cilium_master: false
+cilium_prometheus_enabled: true
+cilium_prometheus_service_monitor_enabled: false
+cilium_dashboards_enabled: true
+cilium_hubble_enabled: true
+cilium_hubble_metrics_dashboards_enabled: true
+cilium_hubble_metrics_service_monitor_enabled: false
+cilium_hubble_relay_enabled: true
+cilium_hubble_relay_prometheus_enabled: true
+cilium_hubble_relay_service_monitor_enabled: false
+cilium_hubble_ui_enabled: true
+cilium_hubble_ui_base_url: "/"
+cilium_cilium_version: "1.16.1"
+cilium_operator_prometheus_enabled: true
+cilium_operator_prometheus_service_monitor_enabled: false
+cilium_operator_dashboards_enabled: true
+cilium_envoy_prometheus_enabled: true
+cilium_envoy_prometheus_service_monitor_enabled: false
+cilium_clustermesh_apiserver_metrics_enabled: true
+cilium_clustermesh_apiserver_service_monitor_enabled: false
+cilium_kube_proxy_replacement: true
+cilium_socket_lb_host_namespace_only: true

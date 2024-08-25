@@ -1,9 +1,3 @@
-- name: Ensure tmp directory exist
-  file:
-    path: "{{playbook_dir}}/files/tmp"
-    state: directory
-  delegate_to: localhost     
-
 - name: Check if private key exists
   stat:
     path: files/tmp/cilium-ca-certificate.key
@@ -20,12 +14,12 @@
   stat:
     path: files/tmp/cilium-ca-certificate.pem
   register: ca_file_stat
-  delegate_to: localhost   
+  delegate_to: localhost
 
 - name: Create certificate signing request (CSR) for CA certificate
   community.crypto.openssl_csr_pipe:
     privatekey_path: files/tmp/cilium-ca-certificate.key
-    common_name: {{ cluster_ca_name }}
+    common_name: "{{ cluster_ca_name }}"
     use_common_name_for_san: false  
     basic_constraints:
       - 'CA:TRUE'
@@ -49,12 +43,26 @@
 - name: Set cilium_ca and cilium_ca_key variables content
   set_fact:
     cilium_ca: "{{ (lookup('file', 'files/tmp/cilium-ca-certificate.pem') + '\n') | b64encode }}" 
-    cilium_ca_key: "{{ (lookup('file', 'files/tmp/cilium-ca-certificate.key') + '\n') | b64encode }}" 
+    cilium_ca_key: "{{ (lookup('file', 'files/tmp/cilium-ca-certificate.key') + '\n') | b64encode }}"
 
-- name: Create Cilium HelmConfig
-  become: true
+# Check if file exists: files/tmp/rke2-cilium-config.yaml
+- name: Check if Cilium values exists
+  ansible.builtin.stat:
+    path: "{{playbook_dir}}/templates/cilium/cilium-values.yaml.j2"
+  delegate_to: localhost
+  register: cilium_values_stat
+
+# If file does not exist, exit
+- name: Fail if Cilium values does not exist
+  ansible.builtin.fail:
+    msg: "Cilium values does not exist. Please create the file at {{playbook_dir}}/templates/cilium/rke2-cilium-config.yaml.j2"
+  when: not cilium_values_stat.stat.exists
+
+- name: Create Cilium values
+  # become: true
   template:
-    src: templates/cilium/cilium-helm-config.yaml.j2
-    dest: files/tmp/rke2-cilium-config.yaml
+    src: "{{playbook_dir}}/templates/cilium/rke2-cilium-helm-config.yaml.j2"
+    dest: "files/tmp/{{ rke2_cluster_name }}-cilium-values.yaml"
     mode: '0644'
-  when: rke2_role == "server"
+  when: cilium_values_stat.stat.exists
+  delegate_to: localhost

@@ -1,4 +1,6 @@
-cilium_default_domain: "cluster1.smigula.internal"
 cluster_ca_name: "Smigula CA"
 ansible_ssh_user: rke2
 ansible_ssh_private_key_file: "/home/mmurphy/.ssh/rke2"
+rke2_version: "v1.30.3+rke2r1"
+rke2_download_images: false
+init_user_name: rke2

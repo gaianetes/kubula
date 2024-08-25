@@ -1,0 +1,83 @@
+tls:
+  ca:
+    cert: {{ cilium_ca }}
+    key: {{ cilium_ca_key }}
+bpf:
+  masquerade: true
+cluster:
+  name: {{ rke2_cluster_name }}
+  id: {{ cilium_mesh_cluster_id }}
+prometheus:
+  enabled: {{ cilium_prometheus_enabled | to_yaml | lower }}
+  serviceMonitor:
+    enabled: {{ cilium_prometheus_service_monitor_enabled }}
+dashboards:
+  enabled: {{ cilium_dashboards_enabled | to_yaml | lower }}
+hubble:
+  enabled: {{ cilium_hubble_enabled | to_yaml | lower }}
+  metrics:
+    enabled:
+    - dns:query;ignoreAAAA
+    - drop
+    - tcp
+    - flow
+    - icmp
+    - http
+    dashboards:
+      enabled: {{ cilium_hubble_metrics_dashboards_enabled | to_yaml | lower }}
+    serviceMonitor:
+      enabled: {{ cilium_hubble_metrics_service_monitor_enabled | to_yaml | lower }}
+  relay:
+    enabled: {{ cilium_hubble_relay_enabled | to_yaml | lower }}
+    prometheus:
+      enabled: {{ cilium_hubble_relay_prometheus_enabled | to_yaml | lower }}
+      serviceMonitor:
+        enabled: {{ cilium_hubble_relay_service_monitor_enabled | to_yaml | lower }}
+  ui:
+    enabled: {{ cilium_hubble_ui_enabled | to_yaml | lower }}
+    baseUrl: {{ cilium_hubble_ui_base_url }}
+version: {{ cilium_cilium_version }}
+operator:
+  replicas: 1
+  prometheus:
+    enabled: {{ cilium_operator_prometheus_enabled | to_yaml | lower }}
+    serviceMonitor:
+      enabled: {{ cilium_operator_prometheus_service_monitor_enabled | to_yaml | lower }}
+  dashboards:
+    enabled: {{ cilium_operator_dashboards_enabled | to_yaml | lower }}
+envoy:
+  prometheus:
+    enabled: {{ cilium_envoy_prometheus_enabled | to_yaml | lower }}
+    serviceMonitor:
+      enabled: {{ cilium_envoy_prometheus_service_monitor_enabled | to_yaml | lower }}
+    service:
+      type: NodePort
+      nodePort: {{ cilium_apiserver_port }}
+    tls:
+      authMode: cluster
+      server:
+        extraDnsNames:
+          - "*.{{ cilium_default_domain }}"
+clustermesh:
+  apiserver:
+    metrics:
+      enabled: {{ cilium_clustermesh_apiserver_metrics_enabled | to_yaml | lower }}
+      serviceMonitor:
+        enabled: {{ cilium_clustermesh_apiserver_service_monitor_enabled | to_yaml | lower }}
+  config:
+    enabled: true
+    domain: {{ cilium_default_domain }}
+    clusters:
+      - name: {{ cilium_peer_cluster_name }}
+        address: {{ cilium_peer_cluster_address }}
+        port: {{ cilium_peer_apiserver_port }}
+  useAPIServer: true
+kubeProxyReplacement: {{ cilium_kube_proxy_replacement }}
+ipam:
+  mode: {{ cilium_ipam_mode }}
+socketLB:
+  hostNamespaceOnly: true
+ipv4:
+  enabled: true
+nodePort:
+  enabled: true

@@ -1,17 +1,33 @@
 ---
 
-- name: Setting up the infrastructure
-  # become: true
-  hosts: localhost
+- name: Configure Control Plane
+  hosts: cp1
   gather_facts: yes
   roles:
     - role: init
-    # - role: kernel
     - role: network
       become: true
     - role: storage
     - role: cilium
+      when: rke2_role == "server"
     - role: rke2
-  vars:
-    rke2_cluster_name: "cilium-demo-cluster1"
-    cilium_cli_version: "v0.16.15"
+
+- name: Configure Worker 1
+  hosts: w1
+  gather_facts: yes
+  roles:
+    - role: init
+    - role: network
+      become: true
+    - role: storage
+    - role: rke2
+
+- name: Configure Worker 2
+  hosts: w2
+  gather_facts: yes
+  roles:
+    - role: init
+    - role: network
+      become: true
+    - role: storage
+    - role: rke2

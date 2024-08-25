@@ -1,2 +1,7 @@
 ---
 # handlers file for init
+
+- name: Reboot if needed
+  become: true
+  reboot:
+    msg: "Rebooting to apply swap configuration changes."
